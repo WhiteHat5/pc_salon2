@@ -1,0 +1,1 @@
+psql -U postgres -h localhost -d pc_salon -f "C:\xampp\htdocs\pc_salon\migrate_from_mysql_to_postgres.sql"

@@ -66,14 +66,6 @@
       overflow: hidden;
     }
 
-    .line-clamp-3 {
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
     /* Стили для ссылок профиля */
     #profile a {
       text-decoration: none;
@@ -1096,17 +1088,12 @@
   <div id="total" class="hidden">0 ₽</div>
 </div>
 
-<!-- SDK Telegram WebApp подгружается асинхронно, чтобы блокировка/таймаут telegram.org не останавливала весь сайт в обычном браузере -->
-<!--
-  API по умолчанию (XAMPP): http://localhost/pc_salon/api/*.php — см. js/api.js
-  Только FastAPI (uvicorn :8000): localStorage.setItem('API_URL', 'http://127.0.0.1:8000/api');
-  Или: window.API_URL = '...' перед подключением js/api.js
--->
-<script>
-  // window.API_URL = 'https://your-public-api-domain/api';
-</script>
+<!-- SDK Telegram WebApp -->
+<script src="https://telegram.org/js/telegram-web-app.js" onerror="console.warn('Не удалось загрузить Telegram WebApp SDK')"></script>
+<!-- URL API теперь автоматически определяется в js/api.js на основе текущего origin и пути -->
 <!-- API модуль (загружается перед основным скриптом) -->
-<script src="js/api.js"></script>
+<!-- Добавляем версию в query string, чтобы форсировать обновление кэша в Telegram WebApp -->
+<script src="js/api.js?v=4"></script>
 <script>
   // маленькая обёртка для безопасного доступа к Telegram.WebApp, если он присутствует
   function safeTelegram() {
@@ -1181,15 +1168,6 @@
   function isTelegramWebApp() {
     return !!(window.Telegram && window.Telegram.WebApp) || !!(window.tg && window.tg.WebApp);
   }
-
-  (function loadTelegramSdk() {
-    var s = document.createElement('script');
-    s.src = 'https://telegram.org/js/telegram-web-app.js';
-    s.async = true;
-    s.onload = function() { initTelegramWebApp(); };
-    s.onerror = function() { console.warn('Не удалось загрузить Telegram WebApp SDK'); };
-    document.head.appendChild(s);
-  })();
   
   // Пробуем инициализировать сразу, если скрипт уже загружен
   if(document.readyState === 'loading') {
@@ -1206,21 +1184,19 @@
     setTimeout(initTelegramWebApp, 300);
   });
   
-  // Повторная инициализация после асинхронной загрузки SDK (мобильный Telegram)
-  setTimeout(initTelegramWebApp, 500);
-  setTimeout(initTelegramWebApp, 1500);
+  // Дополнительная попытка инициализации для мобильных устройств
+  if(isTelegramWebApp()) {
+    // Для мобильных устройств может потребоваться больше времени
+    setTimeout(initTelegramWebApp, 500);
+    setTimeout(initTelegramWebApp, 1000);
+  }
 </script>
 
 <!-- Логика приложения (модульная, современная) -->
 <script type="module">
 // -----------------------------
-// Режим данных
+// Мок-данные (fallback если API недоступен)
 // -----------------------------
-// По умолчанию каталог и поиск берутся только из API/PostgreSQL (без мок-данных).
-// Для офлайн-демо в консоли: window.AURUM_DB_ONLY = false; location.reload();
-const AURUM_DB_ONLY = (window.AURUM_DB_ONLY !== false);
-
-// Мок-данные (только если AURUM_DB_ONLY === false и API недоступен)
 const CATEGORIES_FALLBACK = [
   { id: '4k', name: '4K Gaming', image: 'photo/4K.png' },
   { id: '2k', name: '2K Gaming', image: 'photo/2K.png' },
@@ -1228,7 +1204,7 @@ const CATEGORIES_FALLBACK = [
 ];
 
 // Глобальные переменные для данных (загружаются из API)
-let CATEGORIES = AURUM_DB_ONLY ? [] : [...CATEGORIES_FALLBACK];
+let CATEGORIES = [...CATEGORIES_FALLBACK];
 let CATEGORY_PRODUCTS = {
   '4k': [],
   '2k': [],
@@ -1240,24 +1216,13 @@ async function loadCategories() {
   try {
     if (window.API && window.API.categories) {
       const categories = await window.API.categories.getAll();
-      if (Array.isArray(categories)) {
+      if (categories && categories.length > 0) {
         CATEGORIES = categories;
-        if (categories.length === 0) {
-          console.warn('Категории: ответ API пустой. Проверьте PostgreSQL (таблица categories, db/seed.sql) и что uvicorn запущен.');
-        }
         return true;
       }
     }
   } catch (error) {
-    console.error('Failed to load categories from API:', error);
-    if (AURUM_DB_ONLY) {
-      CATEGORIES = [];
-      return false;
-    }
-  }
-  if (AURUM_DB_ONLY) {
-    CATEGORIES = [];
-    return false;
+    console.warn('Failed to load categories from API, using fallback:', error);
   }
   CATEGORIES = [...CATEGORIES_FALLBACK];
   return false;
@@ -1268,22 +1233,15 @@ async function loadCategoryProducts(categoryId) {
   try {
     if (window.API && window.API.products) {
       const products = await window.API.products.getByCategory(categoryId);
-      if (Array.isArray(products)) {
+      if (products && products.length > 0) {
         CATEGORY_PRODUCTS[categoryId] = products;
         return true;
       }
     }
   } catch (error) {
-    console.error(`Failed to load products for category ${categoryId} from API:`, error);
-    if (AURUM_DB_ONLY) {
-      CATEGORY_PRODUCTS[categoryId] = [];
-      return false;
-    }
+    console.warn(`Failed to load products for category ${categoryId} from API:`, error);
   }
-  if (AURUM_DB_ONLY) {
-    CATEGORY_PRODUCTS[categoryId] = [];
-    return false;
-  }
+  // Fallback на мок-данные
   if (categoryId === '4k' && PRODUCTS_4K.length > 0) {
     CATEGORY_PRODUCTS['4k'] = PRODUCTS_4K;
   } else if (categoryId === '2k' && PRODUCTS_2K.length > 0) {
@@ -1296,26 +1254,26 @@ async function loadCategoryProducts(categoryId) {
 
 // Товары для категории 4K Gaming
 const PRODUCTS_4K = [
-  { id: 101, name: 'AURUM 4K Pro', price: 349990, image: 'photo/pc4_1.jpg', cpu: 'i9-13900K', gpu: 'RTX4090' },
-  { id: 102, name: 'AURUM 4K Elite', price: 299990, image: 'photo/pc4_2.jpg', cpu: 'i7-13700K', gpu: 'RTX4080' },
-  { id: 103, name: 'AURUM 4K Standard', price: 249990, image: 'photo/pc4_3.jpg', cpu: 'R9 7900X', gpu: 'RTX4070 TI' },
-  { id: 104, name: 'AURUM 4K Basic', price: 199990, image: 'photo/pc4_4.jpg', cpu: 'R7 7700X', gpu: 'RTX4070' }
+  { id: 1, name: 'AURUM 4K Pro', price: 349990, image: 'photo/pc4_1.jpg', cpu: 'i9-13900K', gpu: 'RTX4090' },
+  { id: 2, name: 'AURUM 4K Elite', price: 299990, image: 'photo/pc4_2.jpg', cpu: 'i7-13700K', gpu: 'RTX4080' },
+  { id: 3, name: 'AURUM 4K Standard', price: 249990, image: 'photo/pc4_3.jpg', cpu: 'R9 7900X', gpu: 'RTX4070 TI' },
+  { id: 4, name: 'AURUM 4K Basic', price: 199990, image: 'photo/pc4_4.jpg', cpu: 'R7 7700X', gpu: 'RTX4070' }
 ];
 
 // Товары для категории 2K Gaming
 const PRODUCTS_2K = [
-  { id: 201, name: 'AURUM 2K Ultra', price: 239990, image: 'photo/pc2_1.jpg', cpu: 'i7-13700KF', gpu: 'RTX4080 SUPER' },
-  { id: 202, name: 'AURUM 2K Pro', price: 199990, image: 'photo/pc2_2.jpg', cpu: 'R7 7800X3D', gpu: 'RTX4070 TI SUPER' },
-  { id: 203, name: 'AURUM 2K Core', price: 169990, image: 'photo/pc2_3.jpg', cpu: 'i5-13600KF', gpu: 'RTX4070 SUPER' },
-  { id: 204, name: 'AURUM 2K Starter', price: 149990, image: 'photo/pc2_4.jpg', cpu: 'R5 7600', gpu: 'RTX4060 Ti' }
+  { id: 5, name: 'AURUM 2K Ultra', price: 239990, image: 'photo/pc2_1.jpg', cpu: 'i7-13700KF', gpu: 'RTX4080 SUPER' },
+  { id: 6, name: 'AURUM 2K Pro', price: 199990, image: 'photo/pc2_2.jpg', cpu: 'R7 7800X3D', gpu: 'RTX4070 TI SUPER' },
+  { id: 7, name: 'AURUM 2K Core', price: 169990, image: 'photo/pc2_3.jpg', cpu: 'i5-13600KF', gpu: 'RTX4070 SUPER' },
+  { id: 8, name: 'AURUM 2K Starter', price: 149990, image: 'photo/pc2_4.jpg', cpu: 'R5 7600', gpu: 'RTX4060 Ti' }
 ];
 
 // Товары для категории Full HD Gaming
 const PRODUCTS_FULLHD = [
-  { id: 301, name: 'AURUM FHD Ultra', price: 139990, image: 'photo/pc_fh1.jpg', cpu: 'i5-13400F', gpu: 'RTX4060 Ti' },
-  { id: 302, name: 'AURUM FHD Pro', price: 119990, image: 'photo/pc_fh2.jpg', cpu: 'R5 7600', gpu: 'RTX4060' },
-  { id: 303, name: 'AURUM FHD Core', price: 99990, image: 'photo/pc_fh3.jpg', cpu: 'i5-12400F', gpu: 'RTX3060 Ti' },
-  { id: 304, name: 'AURUM FHD Starter', price: 89990, image: 'photo/pc_fh4.jpg', cpu: 'R5 5600', gpu: 'RTX3050' }
+  { id: 9, name: 'AURUM FHD Ultra', price: 139990, image: 'photo/pc_fh1.jpg', cpu: 'i5-13400F', gpu: 'RTX4060 Ti' },
+  { id: 10, name: 'AURUM FHD Pro', price: 119990, image: 'photo/pc_fh2.jpg', cpu: 'R5 7600', gpu: 'RTX4060' },
+  { id: 11, name: 'AURUM FHD Core', price: 99990, image: 'photo/pc_fh3.jpg', cpu: 'i5-12400F', gpu: 'RTX3060 Ti' },
+  { id: 12, name: 'AURUM FHD Starter', price: 89990, image: 'photo/pc_fh4.jpg', cpu: 'R5 5600', gpu: 'RTX3050' }
 ];
 
 // Пустой массив для обратной совместимости (если нужны товары для других категорий)
@@ -1342,7 +1300,7 @@ const PC_CONFIGS = {
 
 // Данные конфигурации для товаров (опции для изменения)
 const PRODUCT_CONFIGS = {
-  101: { // AURUM 4K Pro
+  1: { // AURUM 4K Pro
     basePrice: 349990,
     baseCpu: 'i9-13900K',
     baseGpu: 'RTX4090',
@@ -1401,7 +1359,7 @@ const PRODUCT_CONFIGS = {
     }
   },
   // Остальные товары 4K Gaming
-  102: { // AURUM 4K Elite
+  2: { // AURUM 4K Elite
     basePrice: 299990,
     baseCpu: 'i7-13700K',
     baseGpu: 'RTX4080',
@@ -1459,7 +1417,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  103: { // AURUM 4K Standard
+  3: { // AURUM 4K Standard
     basePrice: 249990,
     baseCpu: 'R9 7900X',
     baseGpu: 'RTX4070 TI',
@@ -1517,7 +1475,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  104: { // AURUM 4K Basic
+  4: { // AURUM 4K Basic
     basePrice: 199990,
     baseCpu: 'R7 7700X',
     baseGpu: 'RTX4070',
@@ -1576,7 +1534,7 @@ const PRODUCT_CONFIGS = {
     }
   },
   // Товары 2K Gaming
-  201: { // AURUM 2K Ultra
+  5: { // AURUM 2K Ultra
     basePrice: 239990,
     baseCpu: 'i7-13700KF',
     baseGpu: 'RTX4080 SUPER',
@@ -1634,7 +1592,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  202: { // AURUM 2K Pro
+  6: { // AURUM 2K Pro
     basePrice: 199990,
     baseCpu: 'R7 7800X3D',
     baseGpu: 'RTX4070 TI SUPER',
@@ -1692,7 +1650,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  203: { // AURUM 2K Core
+  7: { // AURUM 2K Core
     basePrice: 169990,
     baseCpu: 'i5-13600KF',
     baseGpu: 'RTX4070 SUPER',
@@ -1750,7 +1708,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  204: { // AURUM 2K Starter
+  8: { // AURUM 2K Starter
     basePrice: 149990,
     baseCpu: 'R5 7600',
     baseGpu: 'RTX4060 Ti',
@@ -1809,7 +1767,7 @@ const PRODUCT_CONFIGS = {
     }
   },
   // Товары FullHD Gaming
-  301: { // AURUM FHD Ultra
+  9: { // AURUM FHD Ultra
     basePrice: 139990,
     baseCpu: 'i5-13400F',
     baseGpu: 'RTX4060 Ti',
@@ -1867,7 +1825,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  302: { // AURUM FHD Pro
+  10: { // AURUM FHD Pro
     basePrice: 119990,
     baseCpu: 'R5 7600',
     baseGpu: 'RTX4060',
@@ -1925,7 +1883,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  303: { // AURUM FHD Core
+  11: { // AURUM FHD Core
     basePrice: 99990,
     baseCpu: 'i5-12400F',
     baseGpu: 'RTX3060 Ti',
@@ -1983,7 +1941,7 @@ const PRODUCT_CONFIGS = {
       ]
     }
   },
-  304: { // AURUM FHD Starter
+  12: { // AURUM FHD Starter
     basePrice: 89990,
     baseCpu: 'R5 5600',
     baseGpu: 'RTX3050',
@@ -2043,8 +2001,8 @@ const PRODUCT_CONFIGS = {
   }
 };
 
-// В режиме только БД не подмешиваем мок-товары до загрузки с сервера
-if (!AURUM_DB_ONLY && Object.keys(CATEGORY_PRODUCTS).every(key => CATEGORY_PRODUCTS[key].length === 0)) {
+// CATEGORY_PRODUCTS объявлен выше, здесь инициализируем fallback данными если пусто
+if (Object.keys(CATEGORY_PRODUCTS).every(key => CATEGORY_PRODUCTS[key].length === 0)) {
   CATEGORY_PRODUCTS['4k'] = PRODUCTS_4K;
   CATEGORY_PRODUCTS['2k'] = PRODUCTS_2K;
   CATEGORY_PRODUCTS['fullhd'] = PRODUCTS_FULLHD;
@@ -2073,69 +2031,7 @@ const qs = sel => document.querySelector(sel);
 const qsa = sel => Array.from(document.querySelectorAll(sel));
 
 // форматирование цены в локализованный вид
-function formatPrice(n) {
-  const x = Number(n);
-  return (Number.isFinite(x) ? x : 0).toLocaleString() + ' ₽';
-}
-
-// В репозитории есть pc_fh1…4.jpg; старые сиды БД ссылались на отсутствующие pc1_*.jpg → один общий placeholder.
-const LEGACY_PRODUCT_IMAGE_MAP = {
-  'photo/pc1_1.jpg': 'photo/pc_fh1.jpg',
-  'photo/pc1_2.jpg': 'photo/pc_fh2.jpg',
-  'photo/pc1_3.jpg': 'photo/pc_fh3.jpg',
-  'photo/pc1_4.jpg': 'photo/pc_fh4.jpg',
-  'photo/pc1_5.jpg': 'photo/pc_fh1.jpg'
-};
-function resolveProductImageSrc(src) {
-  if (src == null || src === '') return '';
-  const key = String(src).trim();
-  return LEGACY_PRODUCT_IMAGE_MAP[key] || key;
-}
-
-// Соответствие изображения товара ключу PRODUCT_CONFIGS (как у моков 101–304).
-// Товары из PostgreSQL часто имеют другой числовой id, поэтому для конфигуратора и
-// превью описания на карточке определяем «логический» id по файлу картинки.
-const CONFIGURATOR_ID_BY_IMAGE_FRAGMENT = [
-  ['pc4_1', 101], ['pc4_2', 102], ['pc4_3', 103], ['pc4_4', 104],
-  ['pc2_1', 201], ['pc2_2', 202], ['pc2_3', 203], ['pc2_4', 204],
-  ['pc_fh1', 301], ['pc_fh2', 302], ['pc_fh3', 303], ['pc_fh4', 304],
-  ['pc1_1', 301], ['pc1_2', 302], ['pc1_3', 303], ['pc1_4', 304], ['pc1_5', 301]
-];
-
-function resolveConfiguratorProductId(product) {
-  if (!product) return null;
-  if (PRODUCT_CONFIGS[product.id] != null) {
-    return Number(product.id);
-  }
-  const resolvedSrc = resolveProductImageSrc(product.image);
-  const path = String(resolvedSrc || '').toLowerCase();
-  for (const [frag, cfgId] of CONFIGURATOR_ID_BY_IMAGE_FRAGMENT) {
-    if (path.includes(frag)) return cfgId;
-  }
-  return null;
-}
-
-function escapeHtmlAttrText(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// Текст под заголовком на карточке: поле description из API или сниппет из PRODUCT_CONFIGS
-function getProductCardDescriptionSnippet(product) {
-  if (!product) return '';
-  const fromDb = product.description != null ? String(product.description).trim() : '';
-  if (fromDb) return fromDb;
-  const cfgId = resolveConfiguratorProductId(product);
-  if (cfgId == null || !PRODUCT_CONFIGS[cfgId]) return '';
-  const fullDesc = PRODUCT_CONFIGS[cfgId].description || '';
-  const lines = fullDesc.split('\n').map(l => l.trim()).filter(Boolean);
-  const snippet = lines.slice(0, 2).join(' ');
-  if (snippet.length > 160) return snippet.substring(0, 157) + '...';
-  return snippet;
-}
+function formatPrice(n) { return n.toLocaleString() + ' ₽'; }
 
 // безопасные обёртки для localStorage — возвращают fallback при ошибке
 function safeLocalStorageGet(key, fallback) {
@@ -2178,7 +2074,7 @@ function addToHistory(pageId, pageType = 'tab'){
 }
 
 // Вернуться назад
-async function goBack(){
+function goBack(){
   // Проверяем, находимся ли мы на странице privacy или terms
   const currentTab = qsa('.tab').find(tab => tab.getAttribute('aria-hidden') === 'false');
   if(currentTab && (currentTab.id === 'privacy' || currentTab.id === 'terms')){
@@ -2240,7 +2136,7 @@ async function goBack(){
   if(previousPage.type === 'tab'){
     openTab(previousPage.id);
   } else if(previousPage.type === 'category'){
-    await openCategory(previousPage.id);
+    openCategory(previousPage.id);
   } else if(previousPage.type === 'configurator'){
     openConfigurator(previousPage.id);
   }
@@ -2252,36 +2148,25 @@ async function goBack(){
   }, 0);
 }
 
-// Реальный запуск внутри Telegram (есть данные инициализации). В обычном браузере SDK
-// тоже создаёт BackButton, но она не отображается — тогда нужна HTML-кнопка.
-function isTelegramMiniAppClient() {
-  const tg = safeTelegram();
-  if (!tg) return false;
-  if (typeof tg.initData === 'string' && tg.initData.trim().length > 0) return true;
-  const u = tg.initDataUnsafe;
-  if (u && (u.user || u.chat || u.chat_instance || u.receiver)) return true;
-  return false;
-}
-
 // Обновить видимость кнопки "Назад"
 function updateBackButton(){
   const tg = safeTelegram();
-  const useNativeTelegramBack = !!(tg && tg.BackButton && isTelegramMiniAppClient());
-
-  if (useNativeTelegramBack) {
-    if (navigationHistory.length > 1) {
+  
+  // Используем встроенную кнопку "Назад" Telegram WebApp, если доступна
+  if(tg && tg.BackButton){
+    if(navigationHistory.length > 1){
       tg.BackButton.show();
       tg.BackButton.onClick(goBack);
     } else {
       tg.BackButton.hide();
     }
   } else {
-    if (tg && tg.BackButton) {
-      try { tg.BackButton.hide(); } catch (e) { /* ignore */ }
-    }
+    // Fallback: используем HTML кнопку
     const backButton = qs('#back-button');
-    if (!backButton) return;
-    if (navigationHistory.length > 1) {
+    if(!backButton) return;
+    
+    // Показываем кнопку, если в истории больше 1 страницы
+    if(navigationHistory.length > 1){
       backButton.classList.remove('back-button-hidden');
       backButton.classList.add('back-button-visible');
     } else {
@@ -2301,15 +2186,9 @@ if(backButton){
   });
 }
 
-// поиск товара по всем категориям (в т.ч. загруженным из API / PostgreSQL)
+// поиск товара по всем категориям
 function findProductById(id){
   const idStr = String(id);
-  for (const catId of Object.keys(CATEGORY_PRODUCTS)) {
-    const list = CATEGORY_PRODUCTS[catId];
-    if (!Array.isArray(list)) continue;
-    const fromApi = list.find(x => String(x.id) === idStr);
-    if (fromApi) return fromApi;
-  }
   const p4k = PRODUCTS_4K.find(x=>String(x.id)===idStr);
   if(p4k) return p4k;
   const p2k = PRODUCTS_2K.find(x=>String(x.id)===idStr);
@@ -2416,17 +2295,15 @@ class Cart {
       return product ? {
         id: product.id,
         name: product.name,
-        price: Number(product.price) || 0,
-        image: resolveProductImageSrc(product.image),
-        cpu: product.cpu,
-        gpu: product.gpu,
+        price: product.price,
+        image: product.image,
         specs: `${product.cpu || ''}${product.cpu && product.gpu ? ', ' : ''}${product.gpu || product.specs || ''}`.trim(),
         qty: it.qty
       } : null;
     }).filter(Boolean);
   }
-  // общее количество единиц по позициям, которые реально отображаются в корзине
-  getCount(){ return this.getItemsFull().reduce((s, p) => s + p.qty, 0); }
+  // общее количество позиций
+  getCount(){ return this.items.reduce((s,i)=>s+i.qty,0); }
   // общая сумма
   getTotal(){ return this.getItemsFull().reduce((s,p)=>s + p.price * p.qty, 0); }
 }
@@ -2471,17 +2348,6 @@ function renderCategories() {
   // Сетка: всегда 2 колонки
   container.className = 'grid grid-cols-2 gap-3';
 
-  if (!CATEGORIES.length) {
-    container.className = 'grid grid-cols-1 gap-3';
-    container.innerHTML = `
-      <div class="col-span-1 rounded-lg border border-amber-800/60 bg-slate-800/80 p-4 text-center text-sm text-amber-100">
-        <p class="font-semibold text-amber-300 mb-1">Категории недоступны</p>
-        <p class="text-slate-300">Проверьте: PostgreSQL, таблицу <code class="text-amber-200">categories</code> (скрипты в <code class="text-amber-200">db/</code>), запущенный API (<code class="text-amber-200">run_local_api.ps1</code>).</p>
-        <p class="text-xs text-slate-400 mt-2">Базовый URL API: ${window.API?.baseUrl || 'не определён'}</p>
-      </div>`;
-    return;
-  }
-
   // используем DocumentFragment для минимизации репейнтов
   const frag = document.createDocumentFragment();
 
@@ -2518,16 +2384,12 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
   list.forEach(p => {
     const el = document.createElement('article');
     el.className = 'bg-slate-800/70 p-3 rounded-xl border border-amber-800 flex gap-3 items-center';
-    const displayName = ((p.cpu || '') + (p.cpu && p.gpu ? ' | ' : '') + (p.gpu || '')).trim() || (p.name || '');
-    const cardDesc = getProductCardDescriptionSnippet(p);
-    const sublineHtml = cardDesc
-      ? `<p class="text-xs text-amber-100/90 line-clamp-2 mt-1">${escapeHtmlAttrText(cardDesc)}</p>`
-      : `<p class="text-xs text-blue-200">${escapeHtmlAttrText(p.specs || '')}</p>`;
+    const displayName = (p.cpu || '') + (p.cpu && p.gpu ? ' | ' : '') + (p.gpu || '');
     el.innerHTML = `
-      <img src="${resolveProductImageSrc(p.image)}" alt="${escapeHtmlAttrText(displayName || p.name || '')}" class="w-24 h-24 object-contain bg-slate-700 rounded-lg p-1" loading="lazy">
-      <div class="flex-1 min-w-0">
-        <h4 class="font-bold text-amber-300">${escapeHtmlAttrText(displayName)}</h4>
-        ${sublineHtml}
+      <img src="${p.image}" alt="${displayName || p.name}" class="w-24 h-24 object-contain bg-slate-700 rounded-lg p-1" loading="lazy">
+      <div class="flex-1">
+        <h4 class="font-bold text-amber-300">${displayName || p.name}</h4>
+        <p class="text-xs text-blue-200">${p.specs || ''}</p>
       </div>
       <div class="text-right">
         <div class="text-lg font-bold text-amber-400">${formatPrice(p.price)}</div>
@@ -2589,7 +2451,7 @@ function renderCart(){
     const el = document.createElement('div');
     el.className = 'bg-slate-800/70 rounded-xl p-3 flex gap-3 border border-amber-800 items-center';
     el.innerHTML = `
-      <img src="${resolveProductImageSrc(p.image)}" class="w-20 h-20 flex-shrink-0 object-contain bg-slate-700 rounded-lg p-1" loading="lazy">
+      <img src="${p.image}" class="w-20 h-20 flex-shrink-0 object-contain bg-slate-700 rounded-lg p-1" loading="lazy">
       <div class="flex-1 min-w-0">
         <h4 class="font-bold text-base text-amber-300">${(p.cpu || '') + (p.cpu && p.gpu ? ' | ' : '') + (p.gpu || '') || p.name}</h4>
         <p class="text-blue-200 text-xs line-clamp-2">${p.specs || ''}</p>
@@ -2964,7 +2826,7 @@ function renderFavorites(){
     const item = document.createElement('div');
     item.className = 'bg-slate-800/70 p-3 rounded-xl border border-amber-800 flex items-center gap-3';
     item.innerHTML = `
-      <img src="${resolveProductImageSrc(p.image)}" class="w-20 h-20 flex-shrink-0 object-contain bg-slate-700 rounded-lg p-1" loading="lazy">
+      <img src="${p.image}" class="w-20 h-20 flex-shrink-0 object-contain bg-slate-700 rounded-lg p-1" loading="lazy">
       <div class="flex-1 min-w-0">
         <div class="font-bold text-amber-300">${p.name}</div>
         <div class="text-sm text-blue-200 line-clamp-2">${description}</div>
@@ -3261,12 +3123,12 @@ function sortProducts(products, sortType){
   
   switch(sortType){
     case 'price-asc':
-      return sorted.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+      return sorted.sort((a, b) => a.price - b.price);
     case 'price-desc':
-      return sorted.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+      return sorted.sort((a, b) => b.price - a.price);
     case 'newest':
       // Для новинок сортируем по ID в обратном порядке (предполагаем, что больший ID = новее)
-      return sorted.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+      return sorted.sort((a, b) => b.id - a.id);
     case 'name-asc':
       return sorted.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
     case 'name-desc':
@@ -3297,25 +3159,24 @@ async function applyAllFilters(categoryId) {
   // Поиск
   if(state.search.trim()){
     const ql = state.search.trim().toLowerCase();
-    filtered = filtered.filter(p =>
-      p.name.toLowerCase().includes(ql) ||
-      (p.cpu && p.cpu.toLowerCase().includes(ql)) ||
-      (p.gpu && p.gpu.toLowerCase().includes(ql)) ||
-      (p.description && String(p.description).toLowerCase().includes(ql))
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(ql) || 
+      (p.cpu && p.cpu.toLowerCase().includes(ql)) || 
+      (p.gpu && p.gpu.toLowerCase().includes(ql))
     );
   }
 
   // Фильтр по цене
   if(state.price.from !== null && state.price.from !== ''){
-    const from = parseInt(state.price.from, 10);
+    const from = parseInt(state.price.from);
     if(!isNaN(from)){
-      filtered = filtered.filter(p => (Number(p.price) || 0) >= from);
+      filtered = filtered.filter(p => p.price >= from);
     }
   }
   if(state.price.to !== null && state.price.to !== ''){
-    const to = parseInt(state.price.to, 10);
+    const to = parseInt(state.price.to);
     if(!isNaN(to)){
-      filtered = filtered.filter(p => (Number(p.price) || 0) <= to);
+      filtered = filtered.filter(p => p.price <= to);
     }
   }
 
@@ -3607,32 +3468,19 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
 
   container.innerHTML = '';
 
-  if (!products.length) {
-    container.innerHTML = '<div class="col-span-2 text-center text-amber-200 py-10 text-sm">В этой категории нет товаров в базе. Добавьте записи в таблицу <code class="text-amber-300">products</code> или выполните <code class="text-amber-300">seed.sql</code>.</div>';
-    return;
-  }
-
   const frag = document.createDocumentFragment();
 
   products.forEach(product => {
-    const cfgId = resolveConfiguratorProductId(product);
-    const titleLine = (((product.cpu || '') + (product.cpu && product.gpu ? ' | ' : '') + (product.gpu || '')).trim() || (product.name || ''));
-    const descSnippet = getProductCardDescriptionSnippet(product);
-    const descBlock = descSnippet
-      ? `<p class="text-[11px] text-amber-100/90 leading-snug line-clamp-3 mt-1">${escapeHtmlAttrText(descSnippet)}</p>`
-      : '';
-
     const card = document.createElement('div');
-    card.className = 'card-base rounded-xl overflow-hidden p-2 flex flex-col card-pressable min-h-[268px]';
+    card.className = 'card-base rounded-xl overflow-hidden p-2 flex flex-col card-pressable h-[240px]';
     card.innerHTML = `
       <div class="w-full bg-slate-900 flex items-center justify-center mb-1.5 rounded-lg overflow-hidden h-[140px] flex-shrink-0">
-        <img src="${resolveProductImageSrc(product.image)}" alt="${titleLine || product.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='${placeholder}'">
+        <img src="${product.image}" alt="${(product.cpu || '') + (product.cpu && product.gpu ? ' | ' : '') + (product.gpu || '') || product.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='${placeholder}'">
       </div>
-      <div class="mb-1 flex-shrink-0 flex-1 min-h-0">
-        <p class="text-xs font-semibold text-blue-200 leading-tight">${escapeHtmlAttrText(titleLine)}</p>
-        ${descBlock}
+      <div class="mb-1.5 flex-shrink-0 min-h-[32px]">
+        <p class="text-xs text-blue-200 leading-tight">${(product.cpu || '') + (product.cpu && product.gpu ? ' | ' : '') + (product.gpu || '')}</p>
       </div>
-      <div class="flex items-center justify-between mt-auto gap-2 flex-shrink-0 pt-1">
+      <div class="flex items-center justify-between mt-auto gap-2 flex-shrink-0">
         <div class="flex gap-1.5 flex-1">
           <button class="${cartClass} text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${product.id}" title="В корзину">
             <i class="fas fa-shopping-cart text-sm"></i>
@@ -3641,7 +3489,7 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
             <i class="fas fa-heart text-sm"></i>
           </button>
         </div>
-        <div class="text-sm font-bold text-amber-400 whitespace-nowrap ml-2">${formatPrice(Number(product.price) || 0)}</div>
+        <div class="text-sm font-bold text-amber-400 whitespace-nowrap ml-2">${formatPrice(product.price)}</div>
       </div>
     `;
 
@@ -3680,12 +3528,12 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
     }
 
     // Обработчик клика на карточку (открытие конфигуратора для всех товаров с конфигурацией)
-    if(cfgId != null){
+    if(PRODUCT_CONFIGS[product.id]){
       card.style.cursor = 'pointer';
       card.addEventListener('click', (e) => {
         // Не открываем конфигуратор, если клик был на кнопки
         if(e.target.closest('button')) return;
-        openConfigurator(cfgId);
+        openConfigurator(product.id);
       });
     }
 
@@ -3715,7 +3563,7 @@ async function renderCategoryProducts(categoryId){
   state.search = '';
   const searchInput = qs(`#search-${categoryId}`);
   if(searchInput) searchInput.value = '';
-  await applyAllFilters(categoryId);
+  applyAllFilters(categoryId);
 }
 
 // Рендеринг конфигуратора ПК
@@ -3729,10 +3577,10 @@ function renderConfigurator(productId){
   // Определяем категорию по productId
   let categoryId = '4k';
   let categoryName = '4K Gaming';
-  if(productId >= 201 && productId <= 204){
+  if(productId >= 5 && productId <= 8){
     categoryId = '2k';
     categoryName = '2K Gaming';
-  } else if(productId >= 301 && productId <= 304){
+  } else if(productId >= 9 && productId <= 12){
     categoryId = 'fullhd';
     categoryName = 'Full HD Gaming';
   }
@@ -3956,18 +3804,14 @@ function openConfigurator(productId){
   updateBackButton(); // Обновляем кнопку назад
 }
 
-async function openCategory(categoryId){
+function openCategory(categoryId){
   // Добавляем в историю только если это не возврат назад
   if(!isNavigatingBack){
     addToHistory(categoryId, 'category');
   }
   
   if(['4k','2k','fullhd'].includes(categoryId)){
-    try {
-      await renderCategoryProducts(categoryId);
-    } catch (e) {
-      console.warn('renderCategoryProducts failed:', e);
-    }
+    renderCategoryProducts(categoryId);
     // Не добавляем в историю через openTab, так как уже добавили выше
     const wasNavigatingBack = isNavigatingBack;
     isNavigatingBack = true; // Временно, чтобы openTab не добавил в историю
@@ -4000,15 +3844,16 @@ const doSearch = debounce(async q => {
       allProducts = await window.API.products.getAll();
     }
   } catch (error) {
-    console.error('Failed to load products from API for search:', error);
+    console.warn('Failed to load products from API for search, using fallback:', error);
   }
   
-  if ((!allProducts || allProducts.length === 0) && !AURUM_DB_ONLY) {
+  // Fallback на мок-данные если API недоступен или пуст
+  if (!allProducts || allProducts.length === 0) {
     allProducts = [...PRODUCTS_4K, ...PRODUCTS_2K, ...PRODUCTS_FULLHD];
   }
   
   const results = allProducts.filter(p => {
-    const searchText = (p.name || '') + ' ' + (p.cpu || '') + ' ' + (p.gpu || '') + ' ' + (p.specs || '') + ' ' + (p.description || '');
+    const searchText = (p.name || '') + ' ' + (p.cpu || '') + ' ' + (p.gpu || '') + ' ' + (p.specs || '');
     return searchText.toLowerCase().includes(ql);
   });
   renderProducts(results, '#search-list');
@@ -4174,14 +4019,32 @@ async function loadUserOrders(){
     // Загружаем заказы через API
     if(window.API && window.API.orders){
       console.log('Loading orders for telegram_id:', telegramId);
-      const orders = await window.API.orders.getByTelegramId(telegramId);
-      console.log('Orders loaded:', orders);
-      console.log('Orders type:', typeof orders, 'Is array:', Array.isArray(orders), 'Length:', orders?.length);
-      
-      // Убеждаемся, что orders - это массив
-      const ordersArray = Array.isArray(orders) ? orders : (orders?.orders || orders?.data || []);
-      console.log('Orders array:', ordersArray);
-      renderOrders(ordersArray);
+      try {
+        const orders = await window.API.orders.getByTelegramId(telegramId);
+        console.log('Orders loaded:', orders);
+        console.log('Orders type:', typeof orders, 'Is array:', Array.isArray(orders), 'Length:', orders?.length);
+        
+        // Убеждаемся, что orders - это массив
+        const ordersArray = Array.isArray(orders) ? orders : (orders?.orders || orders?.data || []);
+        console.log('Orders array:', ordersArray);
+        
+        if(ordersArray && ordersArray.length > 0) {
+          renderOrders(ordersArray);
+        } else {
+          // Нет заказов - показываем сообщение
+          ordersList.innerHTML = '';
+          ordersList.style.display = 'none';
+          ordersEmpty.innerHTML = `
+            <div class="text-center text-amber-300 text-xl mb-2">Заказов нет</div>
+            <div class="text-center text-amber-300/60 text-sm">Вы еще не сделали заказ</div>
+          `;
+          ordersEmpty.classList.remove('hidden');
+          ordersEmpty.style.display = 'flex';
+        }
+      } catch(apiError) {
+        console.error('API error loading orders:', apiError);
+        throw apiError; // Пробрасываем дальше для общего catch
+      }
     } else {
       console.warn('API not available');
       ordersList.innerHTML = '';
@@ -4196,11 +4059,30 @@ async function loadUserOrders(){
   } catch(error){
     console.error('Failed to load orders:', error);
     console.error('Error details:', error.message, error.stack);
+    console.error('Error name:', error.name);
+    
+    // Показываем более информативное сообщение об ошибке
+    let errorMessage = 'Не удалось загрузить заказы';
+    if(error.message) {
+      if(error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        errorMessage = 'Проблема с соединением. Проверьте подключение к интернету.';
+      } else if(error.message.includes('404') || error.message.includes('Not Found')) {
+        errorMessage = 'Сервер не найден. Проверьте настройки API.';
+      } else if(error.message.includes('500')) {
+        errorMessage = 'Ошибка на сервере. Попробуйте позже.';
+      } else {
+        errorMessage = 'Не удалось загрузить заказы: ' + error.message;
+      }
+    }
+    
     ordersList.innerHTML = '';
     ordersList.style.display = 'none';
     ordersEmpty.innerHTML = `
       <div class="text-center text-amber-300 text-xl mb-2">Ошибка загрузки</div>
-      <div class="text-center text-amber-300/60 text-sm">Не удалось загрузить заказы</div>
+      <div class="text-center text-amber-300/60 text-sm">${errorMessage}</div>
+      <button onclick="loadUserOrders()" class="mt-4 bg-amber-600 hover:bg-amber-700 text-white py-2 px-4 rounded-lg transition">
+        <i class="fas fa-sync-alt mr-2"></i>Попробовать снова
+      </button>
     `;
     ordersEmpty.classList.remove('hidden');
     ordersEmpty.style.display = 'flex';
@@ -4716,12 +4598,6 @@ async function init(){
     await loadCategories();
   } catch (error) {
     console.warn('Failed to load categories, using fallback:', error);
-  }
-  // Предзагружаем товары по всем слотам каталога — чтобы корзина/избранное находили товары по id из БД
-  try {
-    await Promise.all(Object.keys(CATEGORY_PRODUCTS).map(cid => loadCategoryProducts(cid)));
-  } catch (e) {
-    console.warn('Prefetch category products failed:', e);
   }
   renderCategories();
   
@@ -5622,13 +5498,7 @@ function setupModals(){
   }
   
   function initFallback() {
-    if (AURUM_DB_ONLY) {
-      console.error('API (js/api.js) не загрузился. Без него данные из PostgreSQL недоступны.');
-    }
-    // Инициализация UI (каталог пустой в режиме только БД)
-    if (window.API && window.API.products) {
-      Promise.all(Object.keys(CATEGORY_PRODUCTS).map(cid => loadCategoryProducts(cid))).catch(() => {});
-    }
+    // Инициализация с fallback данными
     renderCategories();
     showCartBadge();
     showFavBadge();

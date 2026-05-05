@@ -1,30 +1,47 @@
 /**
  * API модуль для работы с backend
+ * По умолчанию: XAMPP — запросы к PHP в /pc_salon/api/*.php
+ * Опционально: window.API_URL или localStorage.API_URL (например, только FastAPI на :8000)
  */
 
-// Базовый URL API
 let API_BASE_URL;
 
 if (window.API_URL) {
-  // Явно указан в index.html (рекомендуемый способ для продакшена)
-  API_BASE_URL = window.API_URL.trim().replace(/\/+$/, ''); // Убираем слеши в конце
-} else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-  // Локальная разработка — папка api в корне проекта
-  API_BASE_URL = window.location.origin + '/api';
+  API_BASE_URL = window.API_URL.trim().replace(/\/+$/, '');
+} else if (window.localStorage && localStorage.getItem('API_URL')) {
+  API_BASE_URL = localStorage.getItem('API_URL').trim().replace(/\/+$/, '');
 } else {
-  // Продакшен — обязательно укажи window.API_URL в index.html!
-  console.error('API_URL не определён! Укажите window.API_URL в index.html');
-  API_BASE_URL = '/api'; // fallback, но на GitHub Pages не сработает без своего сервера
+  const { origin, pathname, protocol, hostname } = window.location;
+
+  if (protocol === 'file:') {
+    API_BASE_URL = 'http://127.0.0.1/pc_salon/api';
+  } else if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1') {
+    if (pathname.includes('/pc_salon/')) {
+      API_BASE_URL = `${origin.replace(/\/$/, '')}/pc_salon/api`;
+    } else if (window.location.port === '8000' || window.location.port === '8001') {
+      API_BASE_URL = `${origin.replace(/\/$/, '')}/api`;
+    } else {
+      API_BASE_URL = `${origin.replace(/\/$/, '')}/api`;
+    }
+  } else if (pathname.includes('/pc_salon/')) {
+    API_BASE_URL = `${origin.replace(/\/$/, '')}/pc_salon/api`;
+  } else {
+    console.warn('Укажите window.API_URL или откройте сайт с localhost/pc_salon/');
+    API_BASE_URL = `${origin.replace(/\/$/, '')}/api`;
+  }
 }
 
-// Утилита для запросов
+function asArray(maybe) {
+  if (Array.isArray(maybe)) return maybe;
+  return [];
+}
+
 async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}/${endpoint}`;
     const config = {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            // Заголовок для ngrok, чтобы отключить HTML-страницу-предупреждение
             'ngrok-skip-browser-warning': 'true',
             ...options.headers
         },
@@ -37,8 +54,6 @@ async function apiRequest(endpoint, options = {}) {
 
     try {
         const response = await fetch(url, config);
-
-        // Читаем тело один раз как текст, затем пытаемся распарсить JSON
         const text = await response.text();
 
         let data;
@@ -50,40 +65,43 @@ async function apiRequest(endpoint, options = {}) {
         }
 
         if (!response.ok) {
-            // Сервер вернул ошибку (например, 400, 404, 500)
             throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
         }
 
-        // Успешный ответ — возвращаем data (в твоём бэкенде это обычно { data: ..., success: true })
         return data;
     } catch (error) {
         if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
             throw new Error('Нет соединения с сервером. Проверьте интернет или URL API.');
         }
-        throw error; // Пробрасываем дальше для обработки в UI
+        throw error;
     }
 }
-
-// ========================
-// API ОБЪЕКТЫ
-// ========================
 
 const CategoriesAPI = {
     async getAll() {
         const result = await apiRequest('categories.php');
-        return result.categories || result.data || []; // Гибкость под разные форматы ответа
+        const raw = result.categories !== undefined && result.categories !== null
+          ? result.categories
+          : result.data;
+        return asArray(raw);
     }
 };
 
 const ProductsAPI = {
     async getAll() {
         const result = await apiRequest('products.php');
-        return result.products || result.data || [];
+        const raw = result.products !== undefined && result.products !== null
+          ? result.products
+          : result.data;
+        return asArray(raw);
     },
 
     async getByCategory(categoryId) {
-        const result = await apiRequest(`products.php?category=${categoryId}`); // Используем ?category= как в бэкенде
-        return result.products || result.data || [];
+        const result = await apiRequest(`products.php?category=${categoryId}`);
+        const raw = result.products !== undefined && result.products !== null
+          ? result.products
+          : result.data;
+        return asArray(raw);
     },
 
     async getById(productId) {
@@ -131,12 +149,7 @@ const OrdersAPI = {
     async getByTelegramId(telegramId) {
         try {
             const result = await apiRequest(`orders.php?telegram_id=${telegramId}`);
-            console.log('OrdersAPI.getByTelegramId result:', result);
-            // API возвращает { success: true, data: [...], orders: [...] }
             const orders = result.orders || result.data || [];
-            console.log('OrdersAPI.getByTelegramId returning:', orders);
-            
-            // Убеждаемся, что возвращаем массив
             if (!Array.isArray(orders)) {
                 console.warn('OrdersAPI.getByTelegramId: result is not an array:', orders);
                 return [];
@@ -144,11 +157,9 @@ const OrdersAPI = {
             return orders;
         } catch (error) {
             console.error('OrdersAPI.getByTelegramId error:', error);
-            // Если ошибка 404 или пользователь не найден, возвращаем пустой массив
             if (error.message && (error.message.includes('404') || error.message.includes('не найден'))) {
                 return [];
             }
-            // Для других ошибок пробрасываем дальше
             throw error;
         }
     },
@@ -184,16 +195,13 @@ const ReviewsAPI = {
     }
 };
 
-// ========================
-// ЭКСПОРТ
-// ========================
 window.API = {
     categories: CategoriesAPI,
     products: ProductsAPI,
     users: UsersAPI,
     orders: OrdersAPI,
     reviews: ReviewsAPI,
-    baseUrl: API_BASE_URL // Для отладки
+    baseUrl: API_BASE_URL
 };
 
 console.log('API инициализирован. Базовый URL:', API_BASE_URL);
