@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone           varchar(20),
     full_name       varchar(255),
     address         text,
+    is_staff        boolean NOT NULL DEFAULT false,
     created_at      timestamp without time zone NOT NULL DEFAULT NOW(),
     updated_at      timestamp without time zone NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_users_phone_len CHECK (phone IS NULL OR char_length(phone) BETWEEN 6 AND 20)
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS products (
     cpu             varchar(100),
     gpu             varchar(100),
     description     text,
+    config_json     jsonb NULL,
     is_active       boolean NOT NULL DEFAULT true,
     created_at      timestamp without time zone NOT NULL DEFAULT NOW(),
     updated_at      timestamp without time zone NOT NULL DEFAULT NOW(),
@@ -88,6 +90,8 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method  varchar(20) NOT NULL DEFAULT 'cash',
     payment_status  varchar(20) NOT NULL DEFAULT 'pending',
     order_status    varchar(20) NOT NULL DEFAULT 'new',
+    customer_telegram_id bigint NULL,
+    telegram_username varchar(100) NULL,
     created_at      timestamp without time zone NOT NULL DEFAULT NOW(),
     updated_at      timestamp without time zone NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_orders_user
@@ -164,6 +168,10 @@ CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews (product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews (user_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_created ON reviews (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_reviews_product_published_created ON reviews (product_id, is_published, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_reviews_order_id_not_null
+    ON reviews (order_id)
+    WHERE order_id IS NOT NULL;
 
 DROP TRIGGER IF EXISTS trg_reviews_updated_at ON reviews;
 CREATE TRIGGER trg_reviews_updated_at

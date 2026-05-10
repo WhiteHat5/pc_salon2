@@ -3,56 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Управление заказами - AURUM PC Salon</title>
+    <meta name="theme-color" content="#151b28" />
+    <title>Заказы — AURUM</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        #order-modal {
-            backdrop-filter: blur(4px);
+        html { overflow-x: hidden; max-width: 100%; color-scheme: dark; }
+        .admin-app-scope { font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .aurum-premium-shell {
+            background:
+                radial-gradient(ellipse 110% 78% at 50% -10%, rgba(110, 175, 235, 0.14), transparent 56%),
+                radial-gradient(ellipse 72% 48% at 92% 88%, rgba(242, 235, 225, 0.07), transparent 46%),
+                linear-gradient(168deg, #181f2e 0%, #151b28 40%, #161d2a 100%);
+            background-attachment: fixed;
+        }
+        .admin-glass-card {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.1) 0%, rgba(238, 242, 252, 0.05) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(14px) saturate(120%);
+        }
+        .admin-panel {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.075) 0%, rgba(238, 242, 252, 0.038) 100%);
+            backdrop-filter: blur(10px) saturate(118%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+        }
+        .admin-app-scope input:not([type="checkbox"]):not([type="radio"]),
+        .admin-app-scope select,
+        .admin-app-scope textarea {
+            background: rgba(14, 20, 32, 0.62) !important;
+            border: 1px solid rgba(142, 200, 255, 0.22) !important;
+            color: #f2ebe1 !important;
+        }
+        .admin-app-scope input:focus, .admin-app-scope select:focus, .admin-app-scope textarea:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 2px rgba(142, 200, 255, 0.35) !important;
+        }
+        .admin-app-scope label { color: #8ec8ff; }
+        .admin-btn-ice {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #f2ebe1;
+            background: linear-gradient(180deg, rgba(110, 176, 240, 0.24) 0%, rgba(255, 255, 255, 0.06) 100%);
+            border: 1px solid rgba(142, 200, 255, 0.38);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: filter 0.2s ease;
+        }
+        .admin-btn-ice:hover { filter: brightness(1.09); }
+        .admin-btn-danger {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #fce8e8;
+            background: linear-gradient(180deg, rgba(200, 72, 82, 0.45) 0%, rgba(130, 36, 48, 0.55) 100%);
+            border: 1px solid rgba(255, 190, 190, 0.28);
+            transition: filter 0.2s ease;
+        }
+        .admin-btn-danger:hover { filter: brightness(1.08); }
+        .admin-btn-muted {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #8ec8ff;
+            background: rgba(14, 20, 32, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: filter 0.2s ease, background 0.2s ease;
+        }
+        .admin-btn-muted:hover { filter: brightness(1.12); background: rgba(14, 20, 32, 0.72); }
+        .admin-back-fab {
+            display: flex;
+            width: 2.5rem; height: 2.5rem;
+            align-items: center; justify-content: center;
+            border-radius: 9999px;
+            background: linear-gradient(145deg, #6eb0f0 0%, #3b82c4 100%);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            color: #f2ebe1;
+            transition: filter 0.2s ease, transform 0.2s ease;
+        }
+        .admin-back-fab:hover { filter: brightness(1.07); }
+        .admin-back-pill {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.625rem 1.25rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;
+            background: linear-gradient(145deg, #6eb0f0 0%, #3b82c4 100%);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            color: #f2ebe1;
+            transition: filter 0.2s ease;
+        }
+        .admin-back-pill:hover { filter: brightness(1.07); }
+        #order-modal { backdrop-filter: blur(8px); }
+        .admin-toast {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.12) 0%, rgba(238, 242, 252, 0.06) 100%);
+            border: 1px solid rgba(142, 200, 255, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(12px);
+        }
+        .admin-readonly-box {
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            background: rgba(14, 20, 32, 0.55);
+            border: 1px solid rgba(142, 200, 255, 0.12);
+            color: #f2ebe1;
+        }
+        .admin-readonly-box--soft {
+            background: rgba(14, 20, 32, 0.38);
+            border-color: rgba(142, 200, 255, 0.1);
+        }
+        /* Основная кнопка (Войти и др.) — градиент как во витрине AURUM */
+        .from-amber-600.to-yellow-600 {
+            background-image: linear-gradient(to right, #3d7eb8, #6eb0f0, #c8b8a8) !important;
+            color: #080c14 !important;
+        }
+        .from-amber-600.to-yellow-600:hover {
+            background-image: linear-gradient(to right, #4588c4, #7ab8f8, #d4c8b8) !important;
+            filter: brightness(1.05);
+        }
+        body.aurum-premium-shell .bg-gradient-to-r.from-amber-600.to-yellow-600:hover {
+            background-image: linear-gradient(to right, #4588c4, #7ab8f8, #d4c8b8) !important;
+            filter: brightness(1.05);
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white min-h-screen">
-<div id="admin-login" class="min-h-screen flex items-center justify-center p-4">
-  <div class="bg-slate-800/70 rounded-xl p-8 border border-amber-800 max-w-md w-full mx-auto">
-    <h1 class="text-2xl font-bold text-amber-400 mb-6 text-center">Вход в админ-панель</h1>
-    <div id="login-err" class="hidden bg-red-600/20 border border-red-600 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+<body class="aurum-premium-shell admin-app-scope min-h-screen text-[#f2ebe1] pb-[env(safe-area-inset-bottom)]">
+<div id="admin-login" class="min-h-screen flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+  <div class="admin-glass-card max-w-md w-full mx-auto p-8 rounded-xl">
+    <h1 class="text-2xl font-bold text-[#f2ebe1] mb-1 text-center tracking-tight">Панель управления</h1>
+    <p class="text-center text-sm text-[#b8c4d4] mb-6">AURUM · вход по паролю сервера</p>
+    <div id="login-err" class="hidden bg-red-500/15 border border-red-400/40 rounded-xl p-3 mb-4 text-red-300 text-sm"></div>
     <form id="admin-login-form" class="space-y-4">
       <div>
-        <label class="block text-amber-300 text-sm font-medium mb-2">Пароль</label>
-        <input type="password" id="admin-pw" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" autofocus>
+        <label class="block text-sm font-medium mb-2">Пароль</label>
+        <input type="password" id="admin-pw" required class="w-full p-3 rounded-xl" autofocus>
       </div>
-      <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition">Войти</button>
+      <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105 active:scale-100">Войти</button>
     </form>
+    <p class="text-center mt-6"><a href="#" class="hidden admin-fallback-shop admin-back-pill"><i class="fas fa-arrow-left text-sm"></i> В магазин</a></p>
   </div>
 </div>
 <div id="admin-app" class="hidden">
 
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div class="container mx-auto px-4 py-6 max-w-7xl pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <a href="#" class="admin-fallback-shop admin-back-fab hidden fixed left-3 top-14 z-[60]" title="В магазин" aria-label="Назад в магазин"><i class="fas fa-arrow-left"></i></a>
         <!-- Заголовок -->
-        <div class="mb-8 flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold text-amber-400 mb-2">
-                    <i class="fas fa-shopping-cart mr-2"></i>Управление заказами
+        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pl-0 sm:pl-12">
+            <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-bold text-[#f2ebe1] mb-1">
+                    <i class="fas fa-shopping-cart mr-2 text-[#8ec8ff]"></i>Заказы
                 </h1>
-                <p class="text-slate-400">Просмотр и управление заказами клиентов</p>
+                <p class="text-sm text-[#b8c4d4]">Статусы и детали (как в мини-приложении)</p>
             </div>
-            <div class="flex gap-3">
-                <a href="products.html" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition">
-                    <i class="fas fa-box mr-2"></i>Товары
+            <div class="flex flex-wrap gap-3">
+                <a href="products.html" class="admin-btn-ice">
+                    <i class="fas fa-box"></i>Товары
                 </a>
-                <button type="button" id="admin-logout" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Выход
+                <a href="reviews.html" class="admin-btn-ice">
+                    <i class="fas fa-star"></i>Отзывы
+                </a>
+                <button type="button" id="admin-logout" class="admin-btn-danger">
+                    <i class="fas fa-sign-out-alt"></i>Выход
                 </button>
             </div>
         </div>
 
         <!-- Фильтры -->
-        <div class="bg-slate-800/70 rounded-xl p-4 mb-6 border border-amber-800">
+        <div class="admin-panel rounded-xl p-4 mb-6">
             <div class="flex flex-wrap gap-4 items-center">
-                <label class="text-amber-300 text-sm font-medium">Фильтр по статусу:</label>
-                <select id="status-filter" class="p-2 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                <label class="text-sm font-medium text-[#8ec8ff]">Фильтр по статусу:</label>
+                <select id="status-filter" class="p-2.5 rounded-xl min-w-[11rem]">
                     <option value="">Все заказы</option>
                     <option value="new">Новые</option>
                     <option value="processing">В обработке</option>
@@ -61,27 +179,27 @@
                     <option value="delivered">Доставлены</option>
                     <option value="cancelled">Отменены</option>
                 </select>
-                <button id="refresh-orders" class="bg-slate-700 hover:bg-slate-600 text-amber-300 py-2 px-4 rounded-lg transition">
-                    <i class="fas fa-sync-alt mr-2"></i>Обновить
+                <button type="button" id="refresh-orders" class="admin-btn-muted">
+                    <i class="fas fa-sync-alt"></i>Обновить
                 </button>
             </div>
         </div>
 
         <!-- Список заказов -->
-        <div class="bg-slate-800/70 rounded-xl p-6 border border-amber-800">
+        <div class="admin-panel rounded-xl p-6">
             <div id="orders-list" class="space-y-4">
-                <div class="text-center text-amber-300 py-8">Загрузка заказов...</div>
+                <div class="text-center text-[#b8c4d4] py-8">Загрузка заказов…</div>
             </div>
         </div>
 
         <!-- Модальное окно просмотра/редактирования заказа -->
-        <div id="order-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
-            <div class="bg-slate-800 rounded-xl p-6 border border-amber-800 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div id="order-modal" class="fixed inset-0 bg-black/55 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
+            <div class="admin-glass-card rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-amber-300">
+                    <h2 id="order-modal-title" class="text-xl font-bold text-[#8ec8ff]">
                         <i class="fas fa-eye mr-2"></i>Детали заказа
                     </h2>
-                    <button type="button" onclick="window.closeOrderModal()" class="text-slate-400 hover:text-white">
+                    <button type="button" onclick="window.closeOrderModal()" class="text-[#b8c4d4] hover:text-[#f2ebe1] p-1">
                         <i class="fas fa-times text-2xl"></i>
                     </button>
                 </div>
@@ -90,17 +208,101 @@
         </div>
 
         <!-- Сообщения -->
-        <div id="message" class="fixed top-4 right-4 z-50 hidden">
-            <div class="bg-slate-800 rounded-lg p-4 border border-amber-700 shadow-xl">
-                <p id="message-text"></p>
+        <div id="message" class="fixed top-4 right-4 z-[70] hidden max-w-[min(90vw,20rem)]">
+            <div class="admin-toast rounded-xl p-4">
+                <p id="message-text" class="text-sm"></p>
             </div>
         </div>
     </div>
 
     <script>
-        // Определяем путь к API
-        const API_BASE_URL = `${window.location.origin}/api`;
-        const ADMIN_KEY = 'aurum_admin_ok';
+        // Определяем путь к API (python-first)
+        const API_BASE_URL = (() => {
+            const explicit = (window.API_URL || localStorage.getItem('API_URL') || '').trim();
+            if (explicit) return explicit.replace(/\/+$/, '');
+
+            const { origin, hostname, port, pathname, protocol } = window.location;
+            if (protocol === 'file:') return 'http://127.0.0.1:8000/api';
+            if ((hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1')
+                && port !== '8000' && port !== '8001'
+                && pathname.includes('/pc_salon/')) {
+                return 'http://127.0.0.1:8000/api';
+            }
+            return `${origin.replace(/\/$/, '')}/api`;
+        })();
+        const ADMIN_TOKEN_KEY = 'aurum_admin_token';
+        function adminAuthHeaders() {
+            const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+            return t ? { Authorization: 'Bearer ' + t } : {};
+        }
+        function mergeHeaders(base, extra) {
+            return Object.assign({}, base || {}, extra || {});
+        }
+        const ADMIN_FETCH_TIMEOUT_MS = 120000;
+        async function adminFetch(input, init) {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), ADMIN_FETCH_TIMEOUT_MS);
+            try {
+                return await fetch(input, Object.assign({}, init || {}, { signal: ctrl.signal }));
+            } finally {
+                clearTimeout(tid);
+            }
+        }
+        function aurumIsTelegramMiniApp() {
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (!tg) return false;
+            if (typeof tg.initData === 'string' && tg.initData.trim().length > 0) return true;
+            const u = tg.initDataUnsafe;
+            return !!(u && (u.user || u.chat || u.chat_instance || u.receiver));
+        }
+        function resolveMiniAppEntryUrl() {
+            const p = window.location.pathname || '/';
+            const marker = '/admin/';
+            const idx = p.indexOf(marker);
+            if (idx !== -1) {
+                const prefix = idx === 0 ? '' : p.slice(0, idx);
+                return window.location.origin + prefix + '/';
+            }
+            const slash = p.lastIndexOf('/');
+            const dir = slash > 0 ? p.slice(0, slash + 1) : '/';
+            return window.location.origin + dir.replace(/\/?admin\/$/, '/');
+        }
+        function aurumGoBackToMiniApp() {
+            try { sessionStorage.setItem('aurum_return_from_admin', '1'); } catch (e) {}
+            window.location.href = resolveMiniAppEntryUrl();
+        }
+        function aurumSetupAdminTelegramBack() {
+            document.querySelectorAll('.admin-fallback-shop').forEach(el => {
+                el.addEventListener('click', (e) => { e.preventDefault(); aurumGoBackToMiniApp(); });
+            });
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (!aurumIsTelegramMiniApp() || !tg || !tg.BackButton) {
+                document.querySelectorAll('.admin-fallback-shop').forEach(el => el.classList.remove('hidden'));
+                return;
+            }
+            try { tg.ready(); } catch (e) {}
+            try { tg.expand(); } catch (e) {}
+            const hdr = '#151b28';
+            const bg = '#181f2e';
+            try { if (tg.setHeaderColor) tg.setHeaderColor(hdr); } catch (e) {}
+            try { if (tg.setBackgroundColor) tg.setBackgroundColor(bg); } catch (e) {}
+            tg.BackButton.show();
+            tg.BackButton.onClick(aurumGoBackToMiniApp);
+        }
+        async function adminSessionOk() {
+            const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+            if (!t) return false;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/session`, { headers: adminAuthHeaders() });
+                return r.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+        function onAdminUnauthorized() {
+            sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+            location.reload();
+        }
         function mediaUrl(rel) {
             if (!rel) return '/photo/4K.png';
             const s = String(rel).trim();
@@ -108,27 +310,49 @@
             return '/' + s.replace(/^\.?\//, '');
         }
         document.addEventListener('DOMContentLoaded', () => {
+            aurumSetupAdminTelegramBack();
             const loginEl = document.getElementById('admin-login');
             const appEl = document.getElementById('admin-app');
             const lo = document.getElementById('admin-logout');
-            if (sessionStorage.getItem(ADMIN_KEY) === '1') {
-                loginEl.classList.add('hidden');
-                appEl.classList.remove('hidden');
-                loadOrders();
-            }
-            document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+            (async () => {
+                if (await adminSessionOk()) {
+                    loginEl.classList.add('hidden');
+                    appEl.classList.remove('hidden');
+                    loadOrders();
+                }
+            })();
+            document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const err = document.getElementById('login-err');
                 err.classList.add('hidden');
-                if (document.getElementById('admin-pw').value === 'admin123') {
-                    sessionStorage.setItem(ADMIN_KEY, '1');
-                    location.reload();
-                } else {
-                    err.textContent = 'Неверный пароль';
+                const pw = document.getElementById('admin-pw').value;
+                try {
+                    const r = await adminFetch(`${API_BASE_URL}/admin/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: pw })
+                    });
+                    const data = await r.json().catch(() => ({}));
+                    if (r.ok && data.success && data.token) {
+                        sessionStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+                        location.reload();
+                    } else {
+                        err.textContent = (data && data.error) ? data.error : 'Неверный пароль или сервер недоступен';
+                        err.classList.remove('hidden');
+                    }
+                } catch (ex) {
+                    err.textContent = 'Ошибка сети: ' + (ex && ex.message ? ex.message : '');
                     err.classList.remove('hidden');
                 }
             });
-            if (lo) lo.addEventListener('click', () => { sessionStorage.removeItem(ADMIN_KEY); location.reload(); });
+            if (lo) lo.addEventListener('click', () => { sessionStorage.removeItem(ADMIN_TOKEN_KEY); location.reload(); });
+
+            const orderModal = document.getElementById('order-modal');
+            if (orderModal) {
+                orderModal.addEventListener('click', () => { if (window.closeOrderModal) window.closeOrderModal(); });
+                const orderPanel = orderModal.querySelector('.admin-glass-card');
+                if (orderPanel) orderPanel.addEventListener('click', (ev) => ev.stopPropagation());
+            }
         });
 
 
@@ -136,12 +360,55 @@
         let currentOrders = [];
         let currentOrder = null;
 
+        const ORDER_STATUS_LABELS = {
+            new: 'Новый',
+            processing: 'В обработке',
+            confirmed: 'Подтвержден',
+            shipped: 'Отправлен',
+            delivered: 'Доставлен',
+            cancelled: 'Отменен'
+        };
+
+        const PAYMENT_STATUS_LABELS = {
+            pending: 'Ожидает оплаты',
+            paid: 'Оплачен',
+            failed: 'Ошибка оплаты'
+        };
+
+        function adminPaymentMethodLabel(order) {
+            const c = order.comment || '';
+            if (c.includes('[Оплата: внутренний счет]')) return 'Внутренний счёт';
+            return order.payment_method === 'card' ? 'Карта' : 'Наличные';
+        }
+
+        function escapeHtmlAttr(s) {
+            if (s == null || s === '') return '';
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function adminOrderTelegramHtml(order) {
+            const un = (order.telegram_username || order.user_username || '').toString().replace(/^@/, '').trim();
+            const tid = order.customer_telegram_id;
+            if (un) {
+                const safe = escapeHtmlAttr(un);
+                return `<div><i class="fab fa-telegram-plane mr-2 text-[#8ec8ff]/80"></i><a href="https://t.me/${safe}" target="_blank" rel="noopener noreferrer" class="text-sky-300 hover:underline">@${safe}</a></div>`;
+            }
+            if (tid != null && tid !== '') {
+                return `<div><i class="fab fa-telegram-plane mr-2 text-[#8ec8ff]/80"></i>Telegram id: <span class="text-[#f2ebe1]">${escapeHtmlAttr(String(tid))}</span> <span class="text-[#8b97ab] text-xs">(нет @username)</span></div>`;
+            }
+            return '<div class="text-[#8b97ab] text-xs"><i class="fab fa-telegram-plane mr-2 text-[#8ec8ff]/50"></i>Mini App: пользователь без username</div>';
+        }
+
         // Показать сообщение
         function showMessage(text, isError = false) {
             const msgEl = document.getElementById('message');
             const textEl = document.getElementById('message-text');
             textEl.textContent = text;
-            textEl.className = isError ? 'text-red-400' : 'text-green-400';
+            textEl.className = isError ? 'text-red-300' : 'text-emerald-300';
             msgEl.classList.remove('hidden');
             setTimeout(() => msgEl.classList.add('hidden'), 3000);
         }
@@ -154,7 +421,8 @@
                     url += `&status=${encodeURIComponent(statusFilter)}`;
                 }
                 
-                const response = await fetch(url);
+                const response = await adminFetch(url, { headers: adminAuthHeaders() });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
                     const text = await response.text();
@@ -173,8 +441,9 @@
                 renderOrders(orders);
             } catch (error) {
                 console.error('Ошибка загрузки:', error);
-                showMessage('Ошибка загрузки заказов: ' + error.message, true);
-                document.getElementById('orders-list').innerHTML = '<div class="text-center text-red-400 py-8">Ошибка загрузки: ' + error.message + '</div>';
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут при загрузке' : (error && error.message);
+                showMessage('Ошибка загрузки заказов: ' + msg, true);
+                document.getElementById('orders-list').innerHTML = '<div class="text-center text-red-300 py-8">Ошибка загрузки: ' + msg + '</div>';
             }
         }
 
@@ -182,7 +451,7 @@
         function renderOrders(orders) {
             const container = document.getElementById('orders-list');
             if (orders.length === 0) {
-                container.innerHTML = '<div class="text-center text-amber-300 py-8">Заказы не найдены</div>';
+                container.innerHTML = '<div class="text-center text-[#b8c4d4] py-8">Заказы не найдены</div>';
                 return;
             }
 
@@ -196,9 +465,9 @@
             };
 
             const paymentStatusMap = {
-                'pending': { text: 'Ожидает оплаты', color: 'text-yellow-400' },
-                'paid': { text: 'Оплачен', color: 'text-green-400' },
-                'failed': { text: 'Ошибка оплаты', color: 'text-red-400' }
+                'pending': { text: 'Ожидает оплаты', color: 'text-amber-200/90' },
+                'paid': { text: 'Оплачен', color: 'text-emerald-300' },
+                'failed': { text: 'Ошибка оплаты', color: 'text-red-300' }
             };
 
             container.innerHTML = orders.map(order => {
@@ -217,37 +486,38 @@
                 const itemsCount = order.items ? order.items.length : 0;
 
                 return `
-                    <div class="bg-slate-700/50 rounded-lg p-4 border border-amber-800">
+                    <div class="admin-panel rounded-xl p-4">
                         <div class="flex flex-wrap justify-between items-start gap-4">
                             <div class="flex-1 min-w-[200px]">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <span class="font-bold text-amber-300 text-lg">${order.order_number || 'Заказ #' + order.id}</span>
-                                    <span class="px-2 py-1 rounded text-xs font-medium ${status.color} ${status.textColor}">${status.text}</span>
+                                <div class="flex items-center gap-3 mb-2 flex-wrap">
+                                    <span class="font-bold text-[#f2ebe1] text-lg">${order.order_number || 'Заказ #' + order.id}</span>
+                                    <span class="px-2 py-1 rounded-lg text-xs font-medium ${status.color} ${status.textColor}">${status.text}</span>
                                 </div>
-                                <div class="text-sm text-slate-300 space-y-1">
-                                    <div><i class="fas fa-user mr-2"></i>${order.full_name || 'Не указано'}</div>
-                                    <div><i class="fas fa-phone mr-2"></i>${order.phone || 'Не указано'}</div>
-                                    <div><i class="fas fa-calendar mr-2"></i>${orderDate}</div>
-                                    <div><i class="fas fa-truck mr-2"></i>${deliveryTypeText}</div>
-                                    ${order.address ? `<div><i class="fas fa-map-marker-alt mr-2"></i>${order.address}</div>` : ''}
+                                <div class="text-sm text-[#b8c4d4] space-y-1">
+                                    <div><i class="fas fa-user mr-2 text-[#8ec8ff]/80"></i>${order.full_name || 'Не указано'}</div>
+                                    <div><i class="fas fa-phone mr-2 text-[#8ec8ff]/80"></i>${order.phone || 'Не указано'}</div>
+                                    ${adminOrderTelegramHtml(order)}
+                                    <div><i class="fas fa-calendar mr-2 text-[#8ec8ff]/80"></i>${orderDate}</div>
+                                    <div><i class="fas fa-truck mr-2 text-[#8ec8ff]/80"></i>${deliveryTypeText}</div>
+                                    ${order.address ? `<div><i class="fas fa-map-marker-alt mr-2 text-[#8ec8ff]/80"></i>${order.address}</div>` : ''}
                                 </div>
                             </div>
                             <div class="text-right min-w-[150px]">
-                                <div class="text-2xl font-bold text-amber-400 mb-2">${parseFloat(order.total_amount || 0).toLocaleString('ru-RU')} ₽</div>
+                                <div class="text-2xl font-bold text-[#8ec8ff] mb-2">${parseFloat(order.total_amount || 0).toLocaleString('ru-RU')} ₽</div>
                                 <div class="text-sm ${paymentStatus.color} mb-2">${paymentStatus.text}</div>
-                                <div class="text-sm text-slate-400">Товаров: ${itemsCount}</div>
+                                <div class="text-sm text-[#8b97ab]">Товаров: ${itemsCount}</div>
                             </div>
-                            <div class="flex gap-2">
-                                <button type="button" onclick="window.viewOrder(${order.id})" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition" title="Просмотреть">
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="window.viewOrder(${order.id})" class="admin-btn-ice py-2 px-3" title="Просмотреть">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button type="button" onclick="window.updateOrderStatus(${order.id}, 'processing')" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-lg transition text-sm" title="В обработку">
+                                <button type="button" onclick="window.updateOrderStatus(${order.id}, 'processing')" class="bg-amber-600/90 hover:bg-amber-600 text-white py-2 px-3 rounded-xl transition text-sm border border-white/10" title="В обработку">
                                     <i class="fas fa-cog"></i>
                                 </button>
-                                <button type="button" onclick="window.updateOrderStatus(${order.id}, 'confirmed')" class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg transition text-sm" title="Подтвердить">
+                                <button type="button" onclick="window.updateOrderStatus(${order.id}, 'confirmed')" class="bg-emerald-600/90 hover:bg-emerald-600 text-white py-2 px-3 rounded-xl transition text-sm border border-white/10" title="Подтвердить">
                                     <i class="fas fa-check"></i>
                                 </button>
-                                <button type="button" onclick="window.updateOrderStatus(${order.id}, 'cancelled')" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg transition text-sm" title="Отменить">
+                                <button type="button" onclick="window.updateOrderStatus(${order.id}, 'cancelled')" class="admin-btn-danger py-2 px-3" title="Отменить">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -260,7 +530,8 @@
         // Просмотр заказа
         window.viewOrder = async function(id) {
             try {
-                const response = await fetch(`${API_BASE_URL}/orders?id=${id}`);
+                const response = await adminFetch(`${API_BASE_URL}/orders?id=${id}`, { headers: adminAuthHeaders() });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
                 const result = await response.json();
                 
                 if (!result.success) {
@@ -275,7 +546,8 @@
                 document.getElementById('order-modal').classList.add('flex');
             } catch (error) {
                 console.error('Ошибка загрузки заказа:', error);
-                showMessage('Ошибка: ' + error.message, true);
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут ответа сервера' : (error && error.message);
+                showMessage('Ошибка: ' + msg, true);
             }
         };
 
@@ -304,7 +576,7 @@
             const itemsHtml = order.items && order.items.length > 0 ? order.items.map(item => {
                 let specs = '';
                 if (item.item_specs) {
-                    specs = `<div class="text-sm text-slate-400 mt-1">${item.item_specs}</div>`;
+                    specs = `<div class="text-sm text-[#b8c4d4] mt-1">${item.item_specs}</div>`;
                 }
                 if (item.config_data) {
                     try {
@@ -315,42 +587,42 @@
                         if (config.ssd) configParts.push(`SSD: ${config.ssd}`);
                         if (config.warranty) configParts.push(`Гарантия: ${config.warranty}`);
                         if (configParts.length > 0) {
-                            specs += `<div class="text-sm text-slate-400 mt-1">${configParts.join(' | ')}</div>`;
+                            specs += `<div class="text-sm text-[#b8c4d4] mt-1">${configParts.join(' | ')}</div>`;
                         }
                     } catch (e) {
                         console.error('Error parsing config_data:', e);
                     }
                 }
                 return `
-                    <div class="border-b border-slate-700 pb-3 mb-3">
+                    <div class="border-b border-white/10 pb-3 mb-3">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <div class="font-medium text-amber-300">${item.item_name || 'Без названия'}</div>
+                                <div class="font-medium text-[#f2ebe1]">${item.item_name || 'Без названия'}</div>
                                 ${specs}
-                                <div class="text-sm text-slate-400 mt-1">Количество: ${item.quantity || 1}</div>
+                                <div class="text-sm text-[#b8c4d4] mt-1">Количество: ${item.quantity || 1}</div>
                             </div>
                             <div class="text-right ml-4">
-                                <div class="text-amber-400 font-bold">${parseFloat(item.total_price || 0).toLocaleString('ru-RU')} ₽</div>
-                                <div class="text-sm text-slate-400">${parseFloat(item.unit_price || 0).toLocaleString('ru-RU')} ₽ за шт.</div>
+                                <div class="text-[#8ec8ff] font-bold">${parseFloat(item.total_price || 0).toLocaleString('ru-RU')} ₽</div>
+                                <div class="text-sm text-[#8b97ab]">${parseFloat(item.unit_price || 0).toLocaleString('ru-RU')} ₽ за шт.</div>
                             </div>
                         </div>
                     </div>
                 `;
-            }).join('') : '<div class="text-slate-400">Товары не найдены</div>';
+            }).join('') : '<div class="text-[#b8c4d4]">Товары не найдены</div>';
 
             container.innerHTML = `
                 <div class="space-y-4">
                     <!-- Основная информация -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Номер заказа</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.order_number || 'Заказ #' + order.id}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Номер заказа</label>
+                            <div class="admin-readonly-box">${order.order_number || 'Заказ #' + order.id}</div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Статус</label>
-                            <div class="flex items-center gap-2">
-                                <span class="px-3 py-2 rounded text-sm font-medium ${status.color} text-white">${status.text}</span>
-                                <select id="order-status-select" class="flex-1 p-2 rounded-lg bg-slate-700 border border-amber-700 text-white">
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Статус</label>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-3 py-2 rounded-lg text-sm font-medium ${status.color} text-white">${status.text}</span>
+                                <select id="order-status-select" class="flex-1 min-w-[10rem] p-2 rounded-xl">
                                     <option value="new" ${order.order_status === 'new' ? 'selected' : ''}>Новый</option>
                                     <option value="processing" ${order.order_status === 'processing' ? 'selected' : ''}>В обработке</option>
                                     <option value="confirmed" ${order.order_status === 'confirmed' ? 'selected' : ''}>Подтвержден</option>
@@ -358,56 +630,70 @@
                                     <option value="delivered" ${order.order_status === 'delivered' ? 'selected' : ''}>Доставлен</option>
                                     <option value="cancelled" ${order.order_status === 'cancelled' ? 'selected' : ''}>Отменен</option>
                                 </select>
-                                <button onclick="window.saveOrderStatus(${order.id})" class="bg-amber-600 hover:bg-amber-700 text-white py-2 px-4 rounded-lg transition">
+                                <button type="button" onclick="window.saveOrderStatus(${order.id})" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 py-2 px-4 rounded-xl font-semibold transition shadow-md">
                                     <i class="fas fa-save"></i>
                                 </button>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">ФИО</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.full_name || 'Не указано'}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">ФИО</label>
+                            <div class="admin-readonly-box">${order.full_name || 'Не указано'}</div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Телефон</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.phone || 'Не указано'}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Телефон</label>
+                            <div class="admin-readonly-box">${order.phone || 'Не указано'}</div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Тип доставки</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Telegram</label>
+                            <div class="admin-readonly-box">${adminOrderTelegramHtml(order)}</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Тип доставки</label>
+                            <div class="admin-readonly-box">${order.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз'}</div>
                         </div>
                         ${order.address ? `
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Адрес доставки</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.address}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Адрес доставки</label>
+                            <div class="admin-readonly-box">${order.address}</div>
                         </div>
                         ` : ''}
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Способ оплаты</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.payment_method === 'card' ? 'Карта' : 'Наличные'}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Способ оплаты</label>
+                            <div class="admin-readonly-box">${adminPaymentMethodLabel(order)}</div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Статус оплаты</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${order.payment_status === 'paid' ? 'Оплачен' : (order.payment_status === 'failed' ? 'Ошибка оплаты' : 'Ожидает оплаты')}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Статус оплаты</label>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="px-3 py-2 rounded-lg text-sm font-medium bg-slate-700 text-white">${PAYMENT_STATUS_LABELS[order.payment_status] || PAYMENT_STATUS_LABELS.pending}</span>
+                                <select id="order-payment-status-select" class="flex-1 min-w-[10rem] p-2 rounded-xl">
+                                    <option value="pending" ${order.payment_status === 'pending' ? 'selected' : ''}>Ожидает оплаты</option>
+                                    <option value="paid" ${order.payment_status === 'paid' ? 'selected' : ''}>Оплачен</option>
+                                    <option value="failed" ${order.payment_status === 'failed' ? 'selected' : ''}>Ошибка оплаты</option>
+                                </select>
+                                <button type="button" onclick="window.saveOrderPaymentStatus(${order.id})" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 py-2 px-4 rounded-xl font-semibold transition shadow-md" title="Сохранить статус оплаты">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Дата создания</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-white">${orderDate}</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Дата создания</label>
+                            <div class="admin-readonly-box">${orderDate}</div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Общая сумма</label>
-                            <div class="p-3 rounded-lg bg-slate-700 text-amber-400 font-bold text-xl">${parseFloat(order.total_amount || 0).toLocaleString('ru-RU')} ₽</div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Общая сумма</label>
+                            <div class="admin-readonly-box text-[#8ec8ff] font-bold text-xl">${parseFloat(order.total_amount || 0).toLocaleString('ru-RU')} ₽</div>
                         </div>
                     </div>
                     ${order.comment ? `
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий</label>
-                        <div class="p-3 rounded-lg bg-slate-700 text-white">${order.comment}</div>
+                        <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Комментарий</label>
+                        <div class="admin-readonly-box">${order.comment}</div>
                     </div>
                     ` : ''}
                     <!-- Товары -->
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Товары в заказе</label>
-                        <div class="p-4 rounded-lg bg-slate-700/50">
+                        <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Товары в заказе</label>
+                        <div class="p-4 rounded-xl admin-readonly-box--soft">
                             ${itemsHtml}
                         </div>
                     </div>
@@ -423,16 +709,18 @@
 
         // Обновление статуса заказа
         window.updateOrderStatus = async function(id, status) {
-            if (!confirm(`Изменить статус заказа на "${status === 'processing' ? 'В обработке' : status === 'confirmed' ? 'Подтвержден' : 'Отменен'}"?`)) {
+            const statusLabel = ORDER_STATUS_LABELS[status] || status || '—';
+            if (!confirm(`Изменить статус заказа на "${statusLabel}"?`)) {
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/orders?id=${id}&action=update`, {
+                const response = await adminFetch(`${API_BASE_URL}/orders?id=${id}&action=update`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
                     body: JSON.stringify({ order_status: status })
                 });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
 
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
@@ -455,7 +743,8 @@
                 }
             } catch (error) {
                 console.error('Ошибка обновления статуса:', error);
-                showMessage('Ошибка: ' + error.message, true);
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут ответа сервера' : (error && error.message);
+                showMessage('Ошибка: ' + msg, true);
             }
         };
 
@@ -463,6 +752,50 @@
         window.saveOrderStatus = async function(id) {
             const status = document.getElementById('order-status-select').value;
             await window.updateOrderStatus(id, status);
+        };
+
+        window.updateOrderPaymentStatus = async function(id, paymentStatus) {
+            const label = PAYMENT_STATUS_LABELS[paymentStatus] || paymentStatus || '—';
+            if (!confirm(`Изменить статус оплаты на «${label}»?`)) {
+                return;
+            }
+            try {
+                const response = await adminFetch(`${API_BASE_URL}/orders?id=${id}&action=update`, {
+                    method: 'POST',
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                    body: JSON.stringify({ payment_status: paymentStatus })
+                });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Не JSON ответ:', text.substring(0, 500));
+                    throw new Error('Сервер вернул не JSON ответ');
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Статус оплаты обновлён!');
+                    loadOrders(document.getElementById('status-filter').value);
+                    if (currentOrder && currentOrder.id == id) {
+                        currentOrder.payment_status = paymentStatus;
+                        renderOrderDetails(currentOrder);
+                    }
+                } else {
+                    showMessage('Ошибка: ' + (result.error || 'Неизвестная ошибка'), true);
+                }
+            } catch (error) {
+                console.error('Ошибка обновления оплаты:', error);
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут ответа сервера' : (error && error.message);
+                showMessage('Ошибка: ' + msg, true);
+            }
+        };
+
+        window.saveOrderPaymentStatus = async function(id) {
+            const paymentStatus = document.getElementById('order-payment-status-select').value;
+            await window.updateOrderPaymentStatus(id, paymentStatus);
         };
 
         // Фильтр по статусу

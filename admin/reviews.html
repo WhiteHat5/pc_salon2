@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#151b28" />
+    <title>Отзывы — AURUM</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        html { overflow-x: hidden; max-width: 100%; color-scheme: dark; }
+        .admin-app-scope { font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .aurum-premium-shell {
+            background:
+                radial-gradient(ellipse 110% 78% at 50% -10%, rgba(110, 175, 235, 0.14), transparent 56%),
+                linear-gradient(168deg, #181f2e 0%, #151b28 40%, #161d2a 100%);
+            background-attachment: fixed;
+        }
+        .admin-glass-card {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.1) 0%, rgba(238, 242, 252, 0.05) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.32);
+            backdrop-filter: blur(14px);
+        }
+        .admin-panel {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.075) 0%, rgba(238, 242, 252, 0.038) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .admin-app-scope input, .admin-app-scope select { background: rgba(14, 20, 32, 0.62) !important; border: 1px solid rgba(142, 200, 255, 0.22) !important; color: #f2ebe1 !important; }
+        .admin-btn-ice {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #f2ebe1;
+            background: linear-gradient(180deg, rgba(110, 176, 240, 0.24) 0%, rgba(255, 255, 255, 0.06) 100%);
+            border: 1px solid rgba(142, 200, 255, 0.38);
+        }
+        .admin-btn-danger {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #fce8e8;
+            background: linear-gradient(180deg, rgba(200, 72, 82, 0.45) 0%, rgba(130, 36, 48, 0.55) 100%);
+            border: 1px solid rgba(255, 190, 190, 0.28);
+        }
+        .admin-btn-muted {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #8ec8ff;
+            background: rgba(14, 20, 32, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .admin-back-fab {
+            display: flex; width: 2.5rem; height: 2.5rem; align-items: center; justify-content: center;
+            border-radius: 9999px;
+            background: linear-gradient(145deg, #6eb0f0 0%, #3b82c4 100%);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: #f2ebe1;
+        }
+        .from-amber-600.to-yellow-600 {
+            background-image: linear-gradient(to right, #3d7eb8, #6eb0f0, #c8b8a8) !important;
+            color: #080c14 !important;
+        }
+    </style>
+</head>
+<body class="aurum-premium-shell admin-app-scope min-h-screen text-[#f2ebe1] pb-[env(safe-area-inset-bottom)]">
+<div id="admin-login" class="min-h-screen flex items-center justify-center p-4">
+  <div class="admin-glass-card max-w-md w-full mx-auto p-8 rounded-xl">
+    <h1 class="text-2xl font-bold text-center mb-6">Панель управления</h1>
+    <div id="login-err" class="hidden bg-red-500/15 border border-red-400/40 rounded-xl p-3 mb-4 text-red-300 text-sm"></div>
+    <form id="admin-login-form" class="space-y-4">
+      <div>
+        <label class="block text-sm mb-2">Пароль</label>
+        <input type="password" id="admin-pw" required class="w-full p-3 rounded-xl" autofocus>
+      </div>
+      <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 py-3 rounded-xl font-bold">Войти</button>
+    </form>
+    <p class="text-center mt-6"><a href="#" class="hidden admin-fallback-shop admin-back-fab mx-auto w-auto px-4 py-2 rounded-full text-sm no-underline">← В магазин</a></p>
+  </div>
+</div>
+<div id="admin-app" class="hidden">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <a href="#" class="admin-fallback-shop admin-back-fab hidden fixed left-3 top-14 z-[60]" title="В магазин"><i class="fas fa-arrow-left"></i></a>
+        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center sm:pl-12">
+            <div>
+                <h1 class="text-2xl font-bold mb-1"><i class="fas fa-star mr-2 text-[#8ec8ff]"></i>Отзывы</h1>
+                <p class="text-sm text-[#b8c4d4]">Модерация: публикация на витрине</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a href="products.html" class="admin-btn-ice"><i class="fas fa-box"></i>Товары</a>
+                <a href="orders.html" class="admin-btn-ice"><i class="fas fa-shopping-cart"></i>Заказы</a>
+                <button type="button" id="admin-logout" class="admin-btn-danger"><i class="fas fa-sign-out-alt"></i>Выход</button>
+            </div>
+        </div>
+        <div class="admin-panel rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
+            <label class="text-sm text-[#8ec8ff]">Фильтр:</label>
+            <select id="rev-filter" class="p-2.5 rounded-xl min-w-[10rem]">
+                <option value="all">Все</option>
+                <option value="pending">На модерации</option>
+                <option value="published">Опубликованные</option>
+            </select>
+            <button type="button" id="rev-refresh" class="admin-btn-muted"><i class="fas fa-sync-alt"></i>Обновить</button>
+        </div>
+        <div id="rev-list" class="space-y-3"></div>
+    </div>
+</div>
+<script>
+(function () {
+    const API_BASE_URL = (() => {
+        const explicit = (window.API_URL || localStorage.getItem('API_URL') || '').trim();
+        if (explicit) return explicit.replace(/\/+$/, '');
+        const { origin, hostname, port, pathname, protocol } = window.location;
+        if (protocol === 'file:') return 'http://127.0.0.1:8000/api';
+        if ((hostname === 'localhost' || hostname === '127.0.0.1') && port !== '8000' && port !== '8001' && pathname.includes('/pc_salon/'))
+            return 'http://127.0.0.1:8000/api';
+        return `${origin.replace(/\/$/, '')}/api`;
+    })();
+    const ADMIN_TOKEN_KEY = 'aurum_admin_token';
+    function adminAuthHeaders() {
+        const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+        return t ? { Authorization: 'Bearer ' + t } : {};
+    }
+    function mergeH(a, b) { return Object.assign({}, a || {}, b || {}); }
+    async function adminFetch(url, init) {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 120000);
+        try {
+            return await fetch(url, Object.assign({}, init || {}, { signal: ctrl.signal }));
+        } finally {
+            clearTimeout(tid);
+        }
+    }
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function aurumSetupBack() {
+        document.querySelectorAll('.admin-fallback-shop').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                const p = window.location.pathname || '/';
+                const i = p.indexOf('/admin/');
+                const prefix = i > 0 ? p.slice(0, i + 1) : '/';
+                window.location.href = window.location.origin + prefix.replace(/\/?$/, '/');
+            });
+        });
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (!tg || !tg.BackButton) {
+            document.querySelectorAll('.admin-fallback-shop').forEach(el => el.classList.remove('hidden'));
+            return;
+        }
+        try { tg.ready(); tg.expand(); } catch (e) {}
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+            const p = window.location.pathname || '/';
+            const idx = p.indexOf('/admin/');
+            window.location.href = idx !== -1 ? window.location.origin + (idx === 0 ? '/' : p.slice(0, idx + 1)) : '/';
+        });
+    }
+    async function adminSessionOk() {
+        const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+        if (!t) return false;
+        try {
+            const r = await adminFetch(`${API_BASE_URL}/admin/session`, { headers: adminAuthHeaders() });
+            return r.ok;
+        } catch (e) { return false; }
+    }
+    let allReviews = [];
+    function applyFilter(rows) {
+        const f = document.getElementById('rev-filter').value;
+        if (f === 'pending') return rows.filter(r => !r.is_published);
+        if (f === 'published') return rows.filter(r => !!r.is_published);
+        return rows;
+    }
+    function renderList() {
+        const box = document.getElementById('rev-list');
+        const rows = applyFilter(allReviews);
+        if (!rows.length) {
+            box.innerHTML = '<p class="text-[#b8c4d4] text-center py-8">Нет отзывов по фильтру</p>';
+            return;
+        }
+        box.innerHTML = rows.map(r => {
+            const items = Array.isArray(r.order_items) ? r.order_items : [];
+            const itemsHtml = items.length
+                ? `<ul class="mt-2 text-xs text-[#b8c4d4] space-y-0.5">${items.map(it => `<li>• ${esc(it.item_name)}${it.quantity > 1 ? ` ×${it.quantity}` : ''}</li>`).join('')}</ul>`
+                : '';
+            const pub = !!r.is_published;
+            return `<div class="admin-panel rounded-xl p-4" data-id="${r.id}">
+                <div class="flex flex-wrap justify-between gap-2 items-start">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-amber-300 font-semibold">${esc(r.title || 'Без заголовка')}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full ${pub ? 'bg-emerald-600/40 text-emerald-200' : 'bg-amber-600/30 text-amber-200'}">${pub ? 'Опубликован' : 'На модерации'}</span>
+                        </div>
+                        <div class="text-xs text-[#8b97ab] mt-1">#${r.id} · заказ ${r.order_id != null ? '#' + r.order_id : '—'} · ${esc(r.created_at || '')}</div>
+                        <div class="text-sm text-[#f2ebe1] mt-2 whitespace-pre-wrap">${esc(r.comment || '')}</div>
+                        ${itemsHtml}
+                    </div>
+                    <div class="flex flex-col gap-2 shrink-0">
+                        <button type="button" class="rev-toggle px-3 py-2 rounded-lg text-sm font-semibold ${pub ? 'admin-btn-muted' : 'admin-btn-ice'}" data-id="${r.id}" data-next="${pub ? '0' : '1'}">${pub ? 'Снять с публикации' : 'Опубликовать'}</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        box.querySelectorAll('.rev-toggle').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = parseInt(btn.getAttribute('data-id'), 10);
+                const next = btn.getAttribute('data-next') === '1';
+                btn.disabled = true;
+                try {
+                    const r = await adminFetch(`${API_BASE_URL}/reviews/${id}`, {
+                        method: 'PATCH',
+                        headers: mergeH({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                        body: JSON.stringify({ is_published: next })
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (!r.ok) throw new Error(d.error || 'Ошибка');
+                    await loadReviews();
+                } catch (e) {
+                    alert(e.message || 'Не удалось обновить');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+    async function loadReviews() {
+        const box = document.getElementById('rev-list');
+        box.innerHTML = '<p class="text-[#b8c4d4] text-center py-6">Загрузка…</p>';
+        try {
+            const r = await adminFetch(`${API_BASE_URL}/reviews?admin=1`, { headers: adminAuthHeaders() });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+            allReviews = d.reviews || d.data || [];
+            renderList();
+        } catch (e) {
+            box.innerHTML = `<p class="text-red-300 text-center py-6">${esc(e.message)}</p>`;
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        aurumSetupBack();
+        const loginEl = document.getElementById('admin-login');
+        const appEl = document.getElementById('admin-app');
+        (async () => {
+            if (await adminSessionOk()) {
+                loginEl.classList.add('hidden');
+                appEl.classList.remove('hidden');
+                await loadReviews();
+            }
+        })();
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const err = document.getElementById('login-err');
+            err.classList.add('hidden');
+            const pw = document.getElementById('admin-pw').value;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pw })
+                });
+                const data = await r.json().catch(() => ({}));
+                if (r.ok && data.success && data.token) {
+                    sessionStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+                    location.reload();
+                } else {
+                    err.textContent = data.error || 'Неверный пароль';
+                    err.classList.remove('hidden');
+                }
+            } catch (ex) {
+                err.textContent = 'Сеть: ' + (ex.message || '');
+                err.classList.remove('hidden');
+            }
+        });
+        document.getElementById('admin-logout')?.addEventListener('click', () => {
+            sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+            location.reload();
+        });
+        document.getElementById('rev-filter')?.addEventListener('change', () => renderList());
+        document.getElementById('rev-refresh')?.addEventListener('click', () => loadReviews());
+    });
+})();
+</script>
+</body>
+</html>

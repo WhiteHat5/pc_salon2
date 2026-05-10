@@ -3,61 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель - AURUM PC Salon</title>
+    <meta name="theme-color" content="#151b28" />
+    <title>Админ — AURUM</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        #edit-modal {
-            backdrop-filter: blur(4px);
+        html { overflow-x: hidden; max-width: 100%; color-scheme: dark; }
+        .admin-app-scope { font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .aurum-premium-shell {
+            background:
+                radial-gradient(ellipse 110% 78% at 50% -10%, rgba(110, 175, 235, 0.14), transparent 56%),
+                radial-gradient(ellipse 72% 48% at 92% 88%, rgba(242, 235, 225, 0.07), transparent 46%),
+                linear-gradient(168deg, #181f2e 0%, #151b28 40%, #161d2a 100%);
+            background-attachment: fixed;
+        }
+        .admin-glass-card {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.1) 0%, rgba(238, 242, 252, 0.05) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(14px) saturate(120%);
+        }
+        .admin-panel {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.075) 0%, rgba(238, 242, 252, 0.038) 100%);
+            backdrop-filter: blur(10px) saturate(118%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+        }
+        .admin-app-scope input:not([type="checkbox"]):not([type="radio"]),
+        .admin-app-scope select,
+        .admin-app-scope textarea {
+            background: rgba(14, 20, 32, 0.62) !important;
+            border: 1px solid rgba(142, 200, 255, 0.22) !important;
+            color: #f2ebe1 !important;
+        }
+        .admin-app-scope input:focus, .admin-app-scope select:focus, .admin-app-scope textarea:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 2px rgba(142, 200, 255, 0.35) !important;
+        }
+        .admin-app-scope label { color: #8ec8ff; }
+        .admin-btn-ice {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #f2ebe1;
+            background: linear-gradient(180deg, rgba(110, 176, 240, 0.24) 0%, rgba(255, 255, 255, 0.06) 100%);
+            border: 1px solid rgba(142, 200, 255, 0.38);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            transition: filter 0.2s ease;
+        }
+        .admin-btn-ice:hover { filter: brightness(1.09); }
+        .admin-btn-danger {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #fce8e8;
+            background: linear-gradient(180deg, rgba(200, 72, 82, 0.45) 0%, rgba(130, 36, 48, 0.55) 100%);
+            border: 1px solid rgba(255, 190, 190, 0.28);
+            transition: filter 0.2s ease;
+        }
+        .admin-btn-danger:hover { filter: brightness(1.08); }
+        .admin-btn-muted {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem;
+            color: #8ec8ff;
+            background: rgba(14, 20, 32, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: filter 0.2s ease, background 0.2s ease;
+        }
+        .admin-btn-muted:hover { filter: brightness(1.12); background: rgba(14, 20, 32, 0.72); }
+        .admin-back-fab {
+            display: flex;
+            width: 2.5rem; height: 2.5rem;
+            align-items: center; justify-content: center;
+            border-radius: 9999px;
+            background: linear-gradient(145deg, #6eb0f0 0%, #3b82c4 100%);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            color: #f2ebe1;
+            transition: filter 0.2s ease, transform 0.2s ease;
+        }
+        .admin-back-fab:hover { filter: brightness(1.07); }
+        .admin-back-pill {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.625rem 1.25rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600;
+            background: linear-gradient(145deg, #6eb0f0 0%, #3b82c4 100%);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            color: #f2ebe1;
+            transition: filter 0.2s ease;
+        }
+        .admin-back-pill:hover { filter: brightness(1.07); }
+        #edit-modal, #order-modal { backdrop-filter: blur(8px); }
+        .admin-readonly-box {
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            background: rgba(14, 20, 32, 0.55);
+            border: 1px solid rgba(142, 200, 255, 0.12);
+            color: #f2ebe1;
+        }
+        .admin-readonly-box--soft {
+            background: rgba(14, 20, 32, 0.38);
+            border-color: rgba(142, 200, 255, 0.1);
+        }
+        .admin-toast {
+            background: linear-gradient(152deg, rgba(238, 242, 252, 0.12) 0%, rgba(238, 242, 252, 0.06) 100%);
+            border: 1px solid rgba(142, 200, 255, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(12px);
+        }
+        /* Основная кнопка (Войти, Сохранить…) — тот же градиент, что во витрине AURUM */
+        .from-amber-600.to-yellow-600 {
+            background-image: linear-gradient(to right, #3d7eb8, #6eb0f0, #c8b8a8) !important;
+            color: #080c14 !important;
+        }
+        .from-amber-600.to-yellow-600:hover {
+            background-image: linear-gradient(to right, #4588c4, #7ab8f8, #d4c8b8) !important;
+            filter: brightness(1.05);
+        }
+        body.aurum-premium-shell .bg-gradient-to-r.from-amber-600.to-yellow-600:hover {
+            background-image: linear-gradient(to right, #4588c4, #7ab8f8, #d4c8b8) !important;
+            filter: brightness(1.05);
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white min-h-screen">
-<div id="admin-login" class="min-h-screen flex items-center justify-center p-4">
-  <div class="bg-slate-800/70 rounded-xl p-8 border border-amber-800 max-w-md w-full mx-auto">
-    <h1 class="text-2xl font-bold text-amber-400 mb-6 text-center">Вход в админ-панель</h1>
-    <div id="login-err" class="hidden bg-red-600/20 border border-red-600 rounded-lg p-3 mb-4 text-red-400 text-sm"></div>
+<body class="aurum-premium-shell admin-app-scope min-h-screen text-[#f2ebe1] pb-[env(safe-area-inset-bottom)]">
+<div id="admin-login" class="min-h-screen flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))]">
+  <div class="admin-glass-card max-w-md w-full mx-auto p-8 rounded-xl">
+    <h1 class="text-2xl font-bold text-[#f2ebe1] mb-1 text-center tracking-tight">Панель управления</h1>
+    <p class="text-center text-sm text-[#b8c4d4] mb-6">AURUM · вход по паролю сервера</p>
+    <div id="login-err" class="hidden bg-red-500/15 border border-red-400/40 rounded-xl p-3 mb-4 text-red-300 text-sm"></div>
     <form id="admin-login-form" class="space-y-4">
       <div>
-        <label class="block text-amber-300 text-sm font-medium mb-2">Пароль</label>
-        <input type="password" id="admin-pw" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" autofocus>
+        <label class="block text-sm font-medium mb-2">Пароль</label>
+        <input type="password" id="admin-pw" required class="w-full p-3 rounded-xl" autofocus>
       </div>
-      <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition">Войти</button>
+      <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105 active:scale-100">Войти</button>
     </form>
+    <p class="text-center mt-6"><a href="#" class="hidden admin-fallback-shop admin-back-pill"><i class="fas fa-arrow-left text-sm"></i> В магазин</a></p>
   </div>
 </div>
 <div id="admin-app" class="hidden">
 
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="container mx-auto px-4 py-6 max-w-6xl pt-[max(0.5rem,env(safe-area-inset-top))]">
+        <a href="#" class="admin-fallback-shop admin-back-fab hidden fixed left-3 top-14 z-[60]" title="В магазин" aria-label="Назад в магазин"><i class="fas fa-arrow-left"></i></a>
         <!-- Заголовок -->
-        <div class="mb-8 flex justify-between items-center">
-            <div>
-                <h1 class="text-3xl font-bold text-amber-400 mb-2">
-                    <i class="fas fa-cog mr-2"></i>Админ-панель AURUM
+        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center pl-0 sm:pl-12">
+            <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-bold text-[#f2ebe1] mb-1">
+                    <i class="fas fa-cog mr-2 text-[#8ec8ff]"></i>Товары
                 </h1>
-                <p class="text-slate-400">Управление товарами и категориями</p>
+                <p class="text-sm text-[#b8c4d4]">Каталог и карточки (как во витрине)</p>
             </div>
-            <div class="flex gap-3">
-                <a href="orders.html" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition">
-                    <i class="fas fa-shopping-cart mr-2"></i>Заказы
+            <div class="flex flex-wrap gap-3">
+                <a href="orders.html" class="admin-btn-ice">
+                    <i class="fas fa-shopping-cart"></i>Заказы
                 </a>
-                <button type="button" id="admin-logout" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Выход
+                <a href="reviews.html" class="admin-btn-ice">
+                    <i class="fas fa-star"></i>Отзывы
+                </a>
+                <button type="button" id="admin-logout" class="admin-btn-danger">
+                    <i class="fas fa-sign-out-alt"></i>Выход
                 </button>
             </div>
         </div>
 
+        <div id="admin-staff-panel" class="admin-panel rounded-xl p-6 mb-6 hidden">
+            <h2 class="text-xl font-bold text-[#8ec8ff] mb-2">
+                <i class="fas fa-user-shield mr-2"></i>Доступ менеджеров
+            </h2>
+            <p class="text-sm text-[#b8c4d4] mb-4">
+                Назначьте флаг <span class="text-amber-200/90">is_staff</span> по Telegram ID — в профиле мини-приложения появится пункт «Панель управления».
+                Вход менеджера в веб-админку — паролем окружения <code class="text-amber-200/90">MANAGER_ADMIN_PASSWORD</code>.
+                Панель выдачи доступа видна только при входе паролем владельца (<code class="text-amber-200/90">ADMIN_PASSWORD</code>).
+            </p>
+            <div id="admin-staff-list" class="space-y-2 mb-4 text-sm"></div>
+            <form id="admin-staff-form" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
+                <div class="flex-1 min-w-[12rem]">
+                    <label class="block text-sm font-medium mb-2">Telegram ID</label>
+                    <input type="text" inputmode="numeric" id="admin-staff-telegram-id" class="w-full p-3 rounded-xl" placeholder="например 123456789" autocomplete="off">
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="admin-btn-ice px-4 py-3 rounded-xl font-bold">Выдать доступ</button>
+                    <button type="button" id="admin-staff-revoke" class="admin-btn-muted px-4 py-3 rounded-xl font-bold">Снять</button>
+                </div>
+            </form>
+            <p id="admin-staff-msg" class="mt-3 text-sm hidden"></p>
+        </div>
+
         <!-- Форма добавления товара -->
-        <div class="bg-slate-800/70 rounded-xl p-6 mb-6 border border-amber-800">
-            <h2 class="text-xl font-bold text-amber-300 mb-4">
+        <div class="admin-panel rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-bold text-[#8ec8ff] mb-4">
                 <i class="fas fa-plus-circle mr-2"></i>Добавить новый товар
             </h2>
             <form id="add-product-form" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Категория <span class="text-red-400">*</span></label>
-                        <select id="product-category" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                        <label class="block text-sm font-medium mb-2">Категория <span class="text-red-400">*</span></label>
+                        <select id="product-category" required class="w-full p-3 rounded-xl">
                             <option value="">Выберите категорию</option>
                             <option value="4k">4K Gaming</option>
                             <option value="2k">2K Gaming</option>
@@ -65,65 +206,137 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Название товара <span class="text-red-400">*</span></label>
-                        <input type="text" id="product-name" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" placeholder="AURUM 4K Pro">
+                        <label class="block text-sm font-medium mb-2">Название товара <span class="text-red-400">*</span></label>
+                        <input type="text" id="product-name" required class="w-full p-3 rounded-xl" placeholder="AURUM 4K Pro">
                     </div>
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Цена (₽) <span class="text-red-400">*</span></label>
-                        <input type="number" id="product-price" required min="0" step="0.01" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" placeholder="349990">
+                        <label class="block text-sm font-medium mb-2">Цена (₽) <span class="text-red-400">*</span></label>
+                        <input type="number" id="product-price" required min="0" step="1" class="w-full p-3 rounded-xl" placeholder="349990">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium mb-2">Изображение (путь) <span class="text-red-400">*</span></label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="product-image" required class="flex-1 p-3 rounded-xl" placeholder="photo/pc4_1.jpg">
+                            <input type="file" id="product-image-file" class="hidden" accept="image/*">
+                            <button type="button" id="product-image-pick" class="admin-btn-ice whitespace-nowrap px-4 py-3 rounded-xl shrink-0">
+                                <i class="fas fa-folder-open mr-2"></i>Выбрать файл
+                            </button>
+                        </div>
+                        <p class="text-xs text-[#8b97ab] mt-1">Файл должен лежать в папке <code class="text-amber-200/90">photo/</code> на сервере; в поле подставится путь <code class="text-amber-200/90">photo/имя_файла</code>.</p>
                     </div>
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Изображение (путь) <span class="text-red-400">*</span></label>
-                        <input type="text" id="product-image" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" placeholder="photo/pc4_1.jpg">
+                        <label class="block text-sm font-medium mb-2">Процессор</label>
+                        <input type="text" id="product-cpu" class="w-full p-3 rounded-xl" placeholder="i9-13900K">
                     </div>
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Процессор</label>
-                        <input type="text" id="product-cpu" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" placeholder="i9-13900K">
-                    </div>
-                    <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Видеокарта</label>
-                        <input type="text" id="product-gpu" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white" placeholder="RTX4090">
+                        <label class="block text-sm font-medium mb-2">Видеокарта</label>
+                        <input type="text" id="product-gpu" class="w-full p-3 rounded-xl" placeholder="RTX4090">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-amber-300 text-sm font-medium mb-2">Описание</label>
-                    <textarea id="product-description" rows="5" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white resize-none" placeholder="Полное описание товара..."></textarea>
+                    <label class="block text-sm font-medium mb-2">Шаблон описания</label>
+                    <select id="product-description-template" class="w-full p-3 rounded-xl mb-2">
+                        <option value="">— Вручную (не подставлять) —</option>
+                        <option value="4k">Эталон 4K Gaming (как AURUM 4K Pro)</option>
+                        <option value="2k">Эталон 2K Gaming (как AURUM 2K Ultra)</option>
+                        <option value="fullhd">Эталон Full HD (как AURUM FHD Ultra)</option>
+                    </select>
+                    <label class="block text-sm font-medium mb-2">Описание</label>
+                    <textarea id="product-description" rows="8" class="w-full p-3 rounded-xl resize-y min-h-[8rem]" placeholder="Полное описание товара..."></textarea>
                 </div>
+                <!-- Списки модификаций только здесь (свернуто по умолчанию); в «Список товаров» — как у старых карточек, без простыни опций. Полный набор — в модалке «Редактировать». -->
+                <details class="border border-white/10 rounded-xl p-4 space-y-3 group">
+                    <summary class="cursor-pointer select-none list-none flex flex-wrap items-center justify-between gap-2 text-base font-semibold text-[#8ec8ff] [&::-webkit-details-marker]:hidden">
+                        <span>Опции конфигуратора (ПК)</span>
+                        <span class="text-xs font-normal text-[#8b97ab] group-open:hidden">Развернуть списки вариантов</span>
+                        <span class="text-xs font-normal text-[#8b97ab] hidden group-open:inline">Свернуть</span>
+                    </summary>
+                    <div class="pt-2 space-y-3">
+                        <div class="flex flex-wrap justify-end">
+                            <button type="button" id="product-opt-fill-preset" class="admin-btn-muted text-sm py-2 px-3 rounded-xl">
+                                Заполнить из шаблона категории
+                            </button>
+                        </div>
+                        <p class="text-xs text-[#8b97ab]">Каждая строка — один вариант. Цена: <code class="text-amber-200/80">Название | +5000</code> или <code class="text-amber-200/80">Название | -2000</code>. Первая строка в блоке — базовая (входит в цену).</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Процессоры (варианты)</label>
+                                <textarea id="opt-cpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono" placeholder="Intel Core i5-13400F&#10;AMD Ryzen 5 7600 | +8000"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Видеокарты (варианты)</label>
+                                <textarea id="opt-gpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono" placeholder="NVIDIA RTX 4060 8GB&#10;NVIDIA RTX 4070 SUPER 12GB | +30000"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">SSD / накопители</label>
+                                <textarea id="opt-ssd-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono" placeholder="1TB NVMe SSD&#10;2TB NVMe SSD | +8000"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Гарантия</label>
+                                <textarea id="opt-warranty-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono" placeholder="1 год&#10;2 года | +5000"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </details>
                 <div class="flex items-center gap-3">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="product-active" checked class="w-4 h-4 text-amber-600 rounded">
-                        <span class="text-amber-300">Товар активен</span>
+                        <input type="checkbox" id="product-active" checked class="w-4 h-4 text-amber-500 rounded border-[#8ec8ff]/40">
+                        <span class="text-[#b8c4d4]">Товар активен</span>
                     </label>
                 </div>
-                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 px-8 rounded-xl font-bold transition transform hover:scale-105">
+                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 py-3 px-8 rounded-xl font-bold transition shadow-lg shadow-amber-900/25">
                     <i class="fas fa-save mr-2"></i>Добавить товар
                 </button>
             </form>
         </div>
 
         <!-- Список товаров -->
-        <div class="bg-slate-800/70 rounded-xl p-6 border border-amber-800">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-amber-300">
-                    <i class="fas fa-list mr-2"></i>Список товаров
-                </h2>
-                <button id="refresh-products" class="bg-slate-700 hover:bg-slate-600 text-amber-300 py-2 px-4 rounded-lg transition">
-                    <i class="fas fa-sync-alt mr-2"></i>Обновить
-                </button>
+        <div class="admin-panel rounded-xl p-6">
+            <div class="flex flex-col gap-4 mb-4">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <h2 class="text-xl font-bold text-[#8ec8ff]">
+                        <i class="fas fa-list mr-2"></i>Список товаров
+                    </h2>
+                    <button type="button" id="refresh-products" class="admin-btn-muted">
+                        <i class="fas fa-sync-alt"></i>Обновить
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="admin-products-filter-cat" class="block text-xs font-medium mb-1.5 text-[#b8c4d4]">Категория</label>
+                        <select id="admin-products-filter-cat" class="w-full p-3 rounded-xl text-sm">
+                            <option value="all">Все категории</option>
+                            <option value="4k">4K Gaming</option>
+                            <option value="2k">2K Gaming</option>
+                            <option value="fullhd">Full HD Gaming</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="admin-products-sort" class="block text-xs font-medium mb-1.5 text-[#b8c4d4]">Сортировка</label>
+                        <select id="admin-products-sort" class="w-full p-3 rounded-xl text-sm">
+                            <option value="id_asc">По id (возрастание)</option>
+                            <option value="id_desc">По id (убывание)</option>
+                            <option value="name_asc">По названию (А→Я)</option>
+                            <option value="name_desc">По названию (Я→А)</option>
+                            <option value="price_asc">По цене (дешевле сначала)</option>
+                            <option value="price_desc">По цене (дороже сначала)</option>
+                        </select>
+                    </div>
+                </div>
             </div>
-            <div id="products-list" class="space-y-3">
-                <div class="text-center text-amber-300 py-8">Загрузка товаров...</div>
+            <div id="products-list" class="space-y-6">
+                <div class="text-center text-[#b8c4d4] py-8">Загрузка товаров…</div>
             </div>
         </div>
 
         <!-- Модальное окно редактирования -->
-        <div id="edit-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
-            <div class="bg-slate-800 rounded-xl p-6 border border-amber-800 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div id="edit-modal" class="fixed inset-0 bg-black/55 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+            <div id="edit-modal-scroll" class="admin-glass-card rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto overscroll-contain">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-amber-300">
+                    <h2 id="edit-modal-title" class="text-xl font-bold text-[#8ec8ff]">
                         <i class="fas fa-edit mr-2"></i>Редактировать товар
                     </h2>
-                    <button type="button" onclick="window.closeEditModal()" class="text-slate-400 hover:text-white">
+                    <button type="button" onclick="window.closeEditModal()" class="text-[#b8c4d4] hover:text-[#f2ebe1] p-1">
                         <i class="fas fa-times text-2xl"></i>
                     </button>
                 </div>
@@ -131,8 +344,8 @@
                     <input type="hidden" id="edit-product-id">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Категория <span class="text-red-400">*</span></label>
-                            <select id="edit-product-category" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                            <label class="block text-sm font-medium mb-2">Категория <span class="text-red-400">*</span></label>
+                            <select id="edit-product-category" required class="w-full p-3 rounded-xl">
                                 <option value="">Выберите категорию</option>
                                 <option value="4k">4K Gaming</option>
                                 <option value="2k">2K Gaming</option>
@@ -140,41 +353,78 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Название товара <span class="text-red-400">*</span></label>
-                            <input type="text" id="edit-product-name" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                            <label class="block text-sm font-medium mb-2">Название товара <span class="text-red-400">*</span></label>
+                            <input type="text" id="edit-product-name" required class="w-full p-3 rounded-xl">
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Цена (₽) <span class="text-red-400">*</span></label>
-                            <input type="number" id="edit-product-price" required min="0" step="0.01" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                            <label class="block text-sm font-medium mb-2">Цена (₽) <span class="text-red-400">*</span></label>
+                            <input type="number" id="edit-product-price" required min="0" step="1" class="w-full p-3 rounded-xl">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium mb-2">Изображение (путь) <span class="text-red-400">*</span></label>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" id="edit-product-image" required class="flex-1 p-3 rounded-xl">
+                                <input type="file" id="edit-product-image-file" class="hidden" accept="image/*">
+                                <button type="button" id="edit-product-image-pick" class="admin-btn-ice whitespace-nowrap px-4 py-3 rounded-xl shrink-0">
+                                    <i class="fas fa-folder-open mr-2"></i>Выбрать файл
+                                </button>
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Изображение (путь) <span class="text-red-400">*</span></label>
-                            <input type="text" id="edit-product-image" required class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                            <label class="block text-sm font-medium mb-2">Процессор</label>
+                            <input type="text" id="edit-product-cpu" class="w-full p-3 rounded-xl">
                         </div>
                         <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Процессор</label>
-                            <input type="text" id="edit-product-cpu" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
-                        </div>
-                        <div>
-                            <label class="block text-amber-300 text-sm font-medium mb-2">Видеокарта</label>
-                            <input type="text" id="edit-product-gpu" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white">
+                            <label class="block text-sm font-medium mb-2">Видеокарта</label>
+                            <input type="text" id="edit-product-gpu" class="w-full p-3 rounded-xl">
                         </div>
                     </div>
                     <div>
-                        <label class="block text-amber-300 text-sm font-medium mb-2">Описание</label>
-                        <textarea id="edit-product-description" rows="5" class="w-full p-3 rounded-lg bg-slate-700 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-white resize-none"></textarea>
+                        <label class="block text-sm font-medium mb-2">Шаблон описания</label>
+                        <select id="edit-description-template" class="w-full p-3 rounded-xl mb-2">
+                            <option value="">— Вручную —</option>
+                            <option value="4k">Эталон 4K Gaming</option>
+                            <option value="2k">Эталон 2K Gaming</option>
+                            <option value="fullhd">Эталон Full HD</option>
+                        </select>
+                        <label class="block text-sm font-medium mb-2">Описание</label>
+                        <textarea id="edit-product-description" rows="8" class="w-full p-3 rounded-xl resize-y min-h-[8rem]"></textarea>
+                    </div>
+                    <div class="border border-white/10 rounded-xl p-4 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="text-base font-semibold text-[#8ec8ff]">Опции конфигуратора</h3>
+                            <button type="button" id="edit-opt-fill-preset" class="admin-btn-muted text-sm py-2 px-3 rounded-xl">Заполнить из шаблона категории</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Процессоры</label>
+                                <textarea id="edit-opt-cpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Видеокарты</label>
+                                <textarea id="edit-opt-gpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">SSD</label>
+                                <textarea id="edit-opt-ssd-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Гарантия</label>
+                                <textarea id="edit-opt-warranty-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono"></textarea>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" id="edit-product-active" class="w-4 h-4 text-amber-600 rounded">
-                            <span class="text-amber-300">Товар активен</span>
+                            <input type="checkbox" id="edit-product-active" class="w-4 h-4 text-amber-500 rounded border-[#8ec8ff]/40">
+                            <span class="text-[#b8c4d4]">Товар активен</span>
                         </label>
                     </div>
                     <div class="flex gap-3">
-                        <button type="submit" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 px-8 rounded-xl font-bold transition">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 py-3 px-8 rounded-xl font-bold transition shadow-lg shadow-amber-900/25">
                             <i class="fas fa-save mr-2"></i>Сохранить изменения
                         </button>
-                        <button type="button" onclick="window.closeEditModal()" class="bg-slate-700 hover:bg-slate-600 text-white py-3 px-8 rounded-xl font-bold transition">
+                        <button type="button" onclick="window.closeEditModal()" class="admin-btn-muted py-3 px-8 rounded-xl font-bold">
                             Отмена
                         </button>
                     </div>
@@ -183,17 +433,148 @@
         </div>
 
         <!-- Сообщения -->
-        <div id="message" class="fixed top-4 right-4 z-50 hidden">
-            <div class="bg-slate-800 rounded-lg p-4 border border-amber-700 shadow-xl">
-                <p id="message-text"></p>
+        <div id="message" class="fixed top-4 right-4 z-[70] hidden max-w-[min(90vw,20rem)]">
+            <div class="admin-toast rounded-xl p-4">
+                <p id="message-text" class="text-sm"></p>
             </div>
         </div>
     </div>
 
+    <script src="product-presets-data.js"></script>
     <script>
-        // Определяем путь к API
-        const API_BASE_URL = `${window.location.origin}/api`;
-        const ADMIN_KEY = 'aurum_admin_ok';
+        // Определяем путь к API (python-first)
+        const API_BASE_URL = (() => {
+            const explicit = (window.API_URL || localStorage.getItem('API_URL') || '').trim();
+            if (explicit) return explicit.replace(/\/+$/, '');
+
+            const { origin, hostname, port, pathname, protocol } = window.location;
+            if (protocol === 'file:') return 'http://127.0.0.1:8000/api';
+            if ((hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1')
+                && port !== '8000' && port !== '8001'
+                && pathname.includes('/pc_salon/')) {
+                return 'http://127.0.0.1:8000/api';
+            }
+            return `${origin.replace(/\/$/, '')}/api`;
+        })();
+        const ADMIN_TOKEN_KEY = 'aurum_admin_token';
+        function adminAuthHeaders() {
+            const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+            return t ? { Authorization: 'Bearer ' + t } : {};
+        }
+        function mergeHeaders(base, extra) {
+            return Object.assign({}, base || {}, extra || {});
+        }
+        const ADMIN_FETCH_TIMEOUT_MS = 120000;
+        async function adminFetch(input, init) {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), ADMIN_FETCH_TIMEOUT_MS);
+            try {
+                return await fetch(input, Object.assign({}, init || {}, { signal: ctrl.signal }));
+            } finally {
+                clearTimeout(tid);
+            }
+        }
+        function aurumIsTelegramMiniApp() {
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (!tg) return false;
+            if (typeof tg.initData === 'string' && tg.initData.trim().length > 0) return true;
+            const u = tg.initDataUnsafe;
+            return !!(u && (u.user || u.chat || u.chat_instance || u.receiver));
+        }
+        function resolveMiniAppEntryUrl() {
+            const p = window.location.pathname || '/';
+            const marker = '/admin/';
+            const idx = p.indexOf(marker);
+            if (idx !== -1) {
+                const prefix = idx === 0 ? '' : p.slice(0, idx);
+                return window.location.origin + prefix + '/';
+            }
+            const slash = p.lastIndexOf('/');
+            const dir = slash > 0 ? p.slice(0, slash + 1) : '/';
+            return window.location.origin + dir.replace(/\/?admin\/$/, '/');
+        }
+        function aurumGoBackToMiniApp() {
+            try { sessionStorage.setItem('aurum_return_from_admin', '1'); } catch (e) {}
+            window.location.href = resolveMiniAppEntryUrl();
+        }
+        function aurumSetupAdminTelegramBack() {
+            document.querySelectorAll('.admin-fallback-shop').forEach(el => {
+                el.addEventListener('click', (e) => { e.preventDefault(); aurumGoBackToMiniApp(); });
+            });
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (!aurumIsTelegramMiniApp() || !tg || !tg.BackButton) {
+                document.querySelectorAll('.admin-fallback-shop').forEach(el => el.classList.remove('hidden'));
+                return;
+            }
+            try { tg.ready(); } catch (e) {}
+            try { tg.expand(); } catch (e) {}
+            const hdr = '#151b28';
+            const bg = '#181f2e';
+            try { if (tg.setHeaderColor) tg.setHeaderColor(hdr); } catch (e) {}
+            try { if (tg.setBackgroundColor) tg.setBackgroundColor(bg); } catch (e) {}
+            tg.BackButton.show();
+            tg.BackButton.onClick(aurumGoBackToMiniApp);
+        }
+        async function adminSessionOk() {
+            const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+            if (!t) return false;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/session`, { headers: adminAuthHeaders() });
+                return r.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+        async function aurumLoadAdminRole() {
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/session`, { headers: adminAuthHeaders() });
+                const d = await r.json().catch(() => ({}));
+                if (r.ok && d.success && d.role) {
+                    try { sessionStorage.setItem('aurum_admin_role', d.role); } catch (e) {}
+                    return d.role;
+                }
+            } catch (e) {}
+            return null;
+        }
+        async function aurumLoadStaffList() {
+            const box = document.getElementById('admin-staff-list');
+            if (!box) return;
+            box.textContent = 'Загрузка…';
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/staff`, { headers: adminAuthHeaders() });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) {
+                    box.textContent = (d && d.error) ? d.error : 'Не удалось загрузить список';
+                    return;
+                }
+                const rows = d.staff || d.data || [];
+                if (!rows.length) {
+                    box.innerHTML = '<p class="text-[#b8c4d4]">Нет пользователей с доступом менеджера.</p>';
+                    return;
+                }
+                box.innerHTML = rows.map((u) => {
+                    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.full_name || u.username || '—';
+                    return `<div class="admin-readonly-box admin-readonly-box--soft flex justify-between gap-2 flex-wrap">
+                <span><span class="text-[#8ec8ff] font-semibold">${adminEscapeHtml(String(u.telegram_id))}</span> · ${adminEscapeHtml(name)}</span>
+                <span class="text-emerald-300 text-xs font-medium">is_staff</span>
+            </div>`;
+                }).join('');
+            } catch (e) {
+                box.textContent = 'Ошибка сети';
+            }
+        }
+        function aurumStaffSetMessage(text, isErr) {
+            const el = document.getElementById('admin-staff-msg');
+            if (!el) return;
+            el.textContent = text || '';
+            el.classList.toggle('hidden', !text);
+            el.classList.toggle('text-red-300', !!isErr);
+            el.classList.toggle('text-emerald-300', !isErr && !!text);
+        }
+        function onAdminUnauthorized() {
+            sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+            location.reload();
+        }
         function mediaUrl(rel) {
             if (!rel) return '/photo/4K.png';
             const s = String(rel).trim();
@@ -201,47 +582,423 @@
             return '/' + s.replace(/^\.?\//, '');
         }
         document.addEventListener('DOMContentLoaded', () => {
+            aurumSetupAdminTelegramBack();
             const loginEl = document.getElementById('admin-login');
             const appEl = document.getElementById('admin-app');
             const lo = document.getElementById('admin-logout');
-            if (sessionStorage.getItem(ADMIN_KEY) === '1') {
-                loginEl.classList.add('hidden');
-                appEl.classList.remove('hidden');
-                loadProducts();
-            }
-            document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+            (async () => {
+                if (await adminSessionOk()) {
+                    loginEl.classList.add('hidden');
+                    appEl.classList.remove('hidden');
+                    try {
+                        const raw = sessionStorage.getItem('aurum_admin_products_list_prefs_v1');
+                        if (raw) {
+                            const prefs = JSON.parse(raw);
+                            const fc = document.getElementById('admin-products-filter-cat');
+                            const fs = document.getElementById('admin-products-sort');
+                            if (prefs && prefs.cat && fc && Array.from(fc.options).some((o) => o.value === prefs.cat)) fc.value = prefs.cat;
+                            if (prefs && prefs.sort && fs && Array.from(fs.options).some((o) => o.value === prefs.sort)) fs.value = prefs.sort;
+                        }
+                    } catch (e) {}
+                    loadProducts();
+                    const admRole = await aurumLoadAdminRole();
+                    if (admRole === 'super') {
+                        const sp = document.getElementById('admin-staff-panel');
+                        if (sp) {
+                            sp.classList.remove('hidden');
+                            aurumLoadStaffList();
+                        }
+                        const sf = document.getElementById('admin-staff-form');
+                        if (sf) {
+                            sf.addEventListener('submit', async (e) => {
+                                e.preventDefault();
+                                aurumStaffSetMessage('', false);
+                                const inp = document.getElementById('admin-staff-telegram-id');
+                                const tid = parseInt(String(inp && inp.value || '').trim(), 10);
+                                if (!Number.isFinite(tid)) {
+                                    aurumStaffSetMessage('Укажите числовой Telegram ID', true);
+                                    return;
+                                }
+                                try {
+                                    const r = await adminFetch(`${API_BASE_URL}/admin/staff`, {
+                                        method: 'POST',
+                                        headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                                        body: JSON.stringify({ telegram_id: tid, is_staff: true }),
+                                    });
+                                    const d = await r.json().catch(() => ({}));
+                                    if (!r.ok) {
+                                        aurumStaffSetMessage((d && d.error) ? d.error : 'Ошибка', true);
+                                        return;
+                                    }
+                                    aurumStaffSetMessage('Доступ выдан', false);
+                                    if (inp) inp.value = '';
+                                    aurumLoadStaffList();
+                                } catch (ex) {
+                                    aurumStaffSetMessage('Ошибка сети', true);
+                                }
+                            });
+                        }
+                        const rv = document.getElementById('admin-staff-revoke');
+                        if (rv) {
+                            rv.addEventListener('click', async () => {
+                                aurumStaffSetMessage('', false);
+                                const inp = document.getElementById('admin-staff-telegram-id');
+                                const tid = parseInt(String(inp && inp.value || '').trim(), 10);
+                                if (!Number.isFinite(tid)) {
+                                    aurumStaffSetMessage('Укажите Telegram ID для снятия доступа', true);
+                                    return;
+                                }
+                                try {
+                                    const r = await adminFetch(`${API_BASE_URL}/admin/staff`, {
+                                        method: 'POST',
+                                        headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                                        body: JSON.stringify({ telegram_id: tid, is_staff: false }),
+                                    });
+                                    const d = await r.json().catch(() => ({}));
+                                    if (!r.ok) {
+                                        aurumStaffSetMessage((d && d.error) ? d.error : 'Ошибка', true);
+                                        return;
+                                    }
+                                    aurumStaffSetMessage('Доступ снят', false);
+                                    if (inp) inp.value = '';
+                                    aurumLoadStaffList();
+                                } catch (ex) {
+                                    aurumStaffSetMessage('Ошибка сети', true);
+                                }
+                            });
+                        }
+                    }
+                }
+            })();
+            document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const err = document.getElementById('login-err');
                 err.classList.add('hidden');
-                if (document.getElementById('admin-pw').value === 'admin123') {
-                    sessionStorage.setItem(ADMIN_KEY, '1');
-                    location.reload();
-                } else {
-                    err.textContent = 'Неверный пароль';
+                const pw = document.getElementById('admin-pw').value;
+                try {
+                    const r = await adminFetch(`${API_BASE_URL}/admin/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: pw })
+                    });
+                    const data = await r.json().catch(() => ({}));
+                    if (r.ok && data.success && data.token) {
+                        sessionStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+                        location.reload();
+                    } else {
+                        err.textContent = (data && data.error) ? data.error : 'Неверный пароль или сервер недоступен';
+                        err.classList.remove('hidden');
+                    }
+                } catch (ex) {
+                    err.textContent = 'Ошибка сети: ' + (ex && ex.message ? ex.message : '');
                     err.classList.remove('hidden');
                 }
             });
-            if (lo) lo.addEventListener('click', () => { sessionStorage.removeItem(ADMIN_KEY); location.reload(); });
+            if (lo) lo.addEventListener('click', () => { sessionStorage.removeItem(ADMIN_TOKEN_KEY); location.reload(); });
+
+            wireAdminImagePicker('product-image-file', 'product-image', 'product-image-pick');
+            wireAdminImagePicker('edit-product-image-file', 'edit-product-image', 'edit-product-image-pick');
+
+            const editModal = document.getElementById('edit-modal');
+            if (editModal) {
+                editModal.addEventListener('click', () => { if (window.closeEditModal) window.closeEditModal(); });
+                const editPanel = document.getElementById('edit-modal-scroll');
+                if (editPanel) editPanel.addEventListener('click', (ev) => ev.stopPropagation());
+            }
+
+            const descTpl = document.getElementById('product-description-template');
+            if (descTpl) {
+                descTpl.addEventListener('change', () => {
+                    const v = descTpl.value;
+                    if (!v) return;
+                    const t = window.AURUM_ADMIN_DESC_PRESETS && window.AURUM_ADMIN_DESC_PRESETS[v];
+                    if (t) document.getElementById('product-description').value = t;
+                });
+            }
+            const editDescTpl = document.getElementById('edit-description-template');
+            if (editDescTpl) {
+                editDescTpl.addEventListener('change', () => {
+                    const v = editDescTpl.value;
+                    if (!v) return;
+                    const t = window.AURUM_ADMIN_DESC_PRESETS && window.AURUM_ADMIN_DESC_PRESETS[v];
+                    if (t) document.getElementById('edit-product-description').value = t;
+                });
+            }
+            const fillOptAdd = document.getElementById('product-opt-fill-preset');
+            if (fillOptAdd) {
+                fillOptAdd.addEventListener('click', () => {
+                    const cat = document.getElementById('product-category').value || '4k';
+                    adminPresetToTextareas(cat, '');
+                });
+            }
+            const fillOptEdit = document.getElementById('edit-opt-fill-preset');
+            if (fillOptEdit) {
+                fillOptEdit.addEventListener('click', () => {
+                    const cat = document.getElementById('edit-product-category').value || '4k';
+                    adminPresetToTextareas(cat, 'edit-');
+                });
+            }
         });
 
 
         // Глобальные переменные
         let currentProducts = [];
+        const ADMIN_PRODUCTS_LIST_PREFS_KEY = 'aurum_admin_products_list_prefs_v1';
+        const ADMIN_CATEGORY_ORDER = ['4k', '2k', 'fullhd'];
+        const ADMIN_CATEGORY_LABELS = { '4k': '4K Gaming', '2k': '2K Gaming', 'fullhd': 'Full HD Gaming' };
+
+        function adminEscapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function adminCategoryKey(product) {
+            return String(product && product.category_id != null ? product.category_id : '').toLowerCase().trim() || '_none';
+        }
+
+        function adminSortProducts(arr, sortKey) {
+            const copy = arr.slice();
+            const nameOf = (p) => String(p.name || '').toLowerCase();
+            const priceOf = (p) => Math.round(parseFloat(p.price) || 0);
+            const idOf = (p) => Number(p.id) || 0;
+            switch (sortKey) {
+                case 'name_asc':
+                    copy.sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'ru'));
+                    break;
+                case 'name_desc':
+                    copy.sort((a, b) => nameOf(b).localeCompare(nameOf(a), 'ru'));
+                    break;
+                case 'price_asc':
+                    copy.sort((a, b) => priceOf(a) - priceOf(b));
+                    break;
+                case 'price_desc':
+                    copy.sort((a, b) => priceOf(b) - priceOf(a));
+                    break;
+                case 'id_desc':
+                    copy.sort((a, b) => idOf(b) - idOf(a));
+                    break;
+                default:
+                    copy.sort((a, b) => idOf(a) - idOf(b));
+            }
+            return copy;
+        }
+
+        function adminRenderProductCard(product) {
+            const name = adminEscapeHtml(product.name);
+            const cpu = adminEscapeHtml(product.cpu || '');
+            const gpu = adminEscapeHtml(product.gpu || '');
+            return `
+                <div class="admin-panel rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <img src="${mediaUrl(product.image)}" alt="${name}" class="w-full sm:w-20 h-40 sm:h-20 object-cover rounded-xl bg-[rgba(8,12,20,0.88)] border border-white/10" onerror="this.src='/photo/4K.png'">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-[#f2ebe1]">${name}</h3>
+                        <p class="text-sm text-[#b8c4d4]">${cpu}${cpu && gpu ? ' · ' : ''}${gpu}</p>
+                        <p class="text-[#8ec8ff] font-bold mt-1">${Math.round(parseFloat(product.price) || 0).toLocaleString('ru-RU')} ₽</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                        <button type="button" onclick="window.toggleActive(${product.id}, ${product.is_active ? 0 : 1})" class="px-3 py-1.5 rounded-full text-xs font-medium transition ${product.is_active ? 'bg-emerald-600/90 hover:bg-emerald-600' : 'bg-red-600/90 hover:bg-red-600'} cursor-pointer text-white border border-white/15 min-w-[80px]">
+                            ${product.is_active ? '✓ Активен' : '✗ Неактивен'}
+                        </button>
+                        <button type="button" onclick="window.editProduct(${product.id})" class="admin-btn-ice min-w-[40px] h-10 px-0 justify-center rounded-xl" title="Редактировать товар">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" onclick="window.deleteProduct(${product.id})" class="admin-btn-danger min-w-[40px] h-10 px-0 justify-center rounded-xl" title="Удалить товар">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function refreshAdminProductsListView() {
+            const container = document.getElementById('products-list');
+            const fc = document.getElementById('admin-products-filter-cat');
+            const fs = document.getElementById('admin-products-sort');
+            const catFilter = fc && fc.value ? fc.value : 'all';
+            const sortKey = fs && fs.value ? fs.value : 'id_asc';
+            try {
+                sessionStorage.setItem(ADMIN_PRODUCTS_LIST_PREFS_KEY, JSON.stringify({ cat: catFilter, sort: sortKey }));
+            } catch (e) {}
+
+            if (!currentProducts.length) {
+                container.innerHTML = '<div class="text-center text-[#b8c4d4] py-8">Товары не найдены</div>';
+                return;
+            }
+
+            let list = currentProducts.slice();
+            if (catFilter !== 'all') {
+                list = list.filter((p) => adminCategoryKey(p) === catFilter);
+            }
+            list = adminSortProducts(list, sortKey);
+
+            if (!list.length) {
+                container.innerHTML = '<div class="text-center text-[#b8c4d4] py-8">Нет товаров по выбранной категории</div>';
+                return;
+            }
+
+            function sectionHtml(title, items) {
+                if (!items.length) return '';
+                const cards = items.map(adminRenderProductCard).join('');
+                const safeTitle = adminEscapeHtml(title);
+                return `
+                    <section class="admin-products-section space-y-3">
+                        <h3 class="text-sm font-semibold text-[#8ec8ff] border-b border-white/10 pb-2 flex flex-wrap items-center justify-between gap-2">
+                            <span>${safeTitle}</span>
+                            <span class="text-xs font-normal text-[#b8c4d4]">${items.length}</span>
+                        </h3>
+                        <div class="space-y-3">${cards}</div>
+                    </section>
+                `;
+            }
+
+            let html = '';
+            if (catFilter === 'all') {
+                const byCat = new Map();
+                for (const p of list) {
+                    const k = adminCategoryKey(p);
+                    if (!byCat.has(k)) byCat.set(k, []);
+                    byCat.get(k).push(p);
+                }
+                for (const key of ADMIN_CATEGORY_ORDER) {
+                    if (byCat.has(key)) {
+                        const label = ADMIN_CATEGORY_LABELS[key] || key;
+                        html += sectionHtml(label, byCat.get(key));
+                        byCat.delete(key);
+                    }
+                }
+                const restKeys = Array.from(byCat.keys()).sort();
+                for (const key of restKeys) {
+                    const items = byCat.get(key);
+                    if (!items || !items.length) continue;
+                    const label = key === '_none' ? 'Без категории' : (ADMIN_CATEGORY_LABELS[key] || ('Категория: ' + key));
+                    html += sectionHtml(label, items);
+                }
+            } else {
+                const label = ADMIN_CATEGORY_LABELS[catFilter] || catFilter;
+                html = sectionHtml(label, list);
+            }
+            container.innerHTML = html;
+        }
 
         // Показать сообщение
         function showMessage(text, isError = false) {
             const msgEl = document.getElementById('message');
             const textEl = document.getElementById('message-text');
             textEl.textContent = text;
-            textEl.className = isError ? 'text-red-400' : 'text-green-400';
+            textEl.className = isError ? 'text-red-300' : 'text-emerald-300';
             msgEl.classList.remove('hidden');
             setTimeout(() => msgEl.classList.add('hidden'), 3000);
+        }
+
+        function adminParseOptionLines(text) {
+            return String(text || '').split('\n').map((l) => l.trim()).filter(Boolean).map((line, i) => {
+                let name = line;
+                let price = 0;
+                if (line.includes('|')) {
+                    const parts = line.split('|').map((s) => s.trim());
+                    name = parts[0] || '';
+                    const rawNum = String(parts[1] || '').replace(/[^\d+-]/g, '');
+                    const sign = rawNum.trim().startsWith('-') ? -1 : 1;
+                    const n = parseInt(rawNum.replace(/^[+]/, '').replace(/^-/, '') || '0', 10);
+                    if (!Number.isNaN(n)) price = sign * n;
+                }
+                return { name, price, selected: i === 0 };
+            });
+        }
+
+        function adminOptionsToLines(opts) {
+            if (!Array.isArray(opts)) return '';
+            return opts.map((o) => {
+                const p = Number(o.price) || 0;
+                if (!p) return o.name;
+                return `${o.name} | ${p > 0 ? '+' : ''}${p}`;
+            }).join('\n');
+        }
+
+        function adminPresetToTextareas(cat, idPrefix) {
+            const pre = idPrefix || '';
+            const preset = (window.AURUM_ADMIN_OPTION_PRESETS || {})[cat];
+            if (!preset) return;
+            ['cpu', 'gpu', 'ssd', 'warranty'].forEach((k) => {
+                const el = document.getElementById(pre + 'opt-' + k + '-lines');
+                if (el) el.value = adminOptionsToLines(preset[k]);
+            });
+        }
+
+        function adminBuildConfigJson(fields) {
+            const cat = fields.categoryEl.value || '4k';
+            const name = fields.nameEl.value.trim();
+            const price = Math.round(parseFloat(fields.priceEl.value) || 0);
+            const image = fields.imageEl.value.trim();
+            const cpu = (fields.cpuEl.value || '').trim();
+            const gpu = (fields.gpuEl.value || '').trim();
+            const description = fields.descEl.value || '';
+            const preset = (window.AURUM_ADMIN_OPTION_PRESETS || {})[cat] || null;
+            const mergeGroup = (key, optEl) => {
+                const parsed = adminParseOptionLines(optEl ? optEl.value : '');
+                if (parsed.length) return parsed;
+                if (preset && preset[key]) return JSON.parse(JSON.stringify(preset[key]));
+                const fallback =
+                    key === 'cpu' ? (cpu || 'Процессор') :
+                    key === 'gpu' ? (gpu || 'Видеокарта') :
+                    key === 'ssd' ? '1TB NVMe SSD' : '1 год';
+                return [{ name: fallback, price: 0, selected: true }];
+            };
+            return {
+                basePrice: price,
+                baseCpu: cpu,
+                baseGpu: gpu,
+                image,
+                name,
+                description,
+                options: {
+                    cpu: mergeGroup('cpu', fields.optCpuEl),
+                    gpu: mergeGroup('gpu', fields.optGpuEl),
+                    ssd: mergeGroup('ssd', fields.optSsdEl),
+                    warranty: mergeGroup('warranty', fields.optWarrantyEl),
+                },
+            };
+        }
+
+        function adminLoadConfigEditorsFromProduct(product, idPrefix) {
+            const pre = idPrefix || '';
+            let cfg = product.config_json;
+            if (typeof cfg === 'string' && cfg.trim()) {
+                try { cfg = JSON.parse(cfg); } catch (e) { cfg = null; }
+            }
+            const cat = product.category_id || '4k';
+            if (cfg && cfg.options && typeof cfg.options === 'object') {
+                ['cpu', 'gpu', 'ssd', 'warranty'].forEach((k) => {
+                    const el = document.getElementById(pre + 'opt-' + k + '-lines');
+                    if (el) el.value = adminOptionsToLines(cfg.options[k]);
+                });
+                return;
+            }
+            adminPresetToTextareas(cat, pre);
+        }
+
+        function wireAdminImagePicker(fileInputId, textInputId, buttonId) {
+            const fi = document.getElementById(fileInputId);
+            const ti = document.getElementById(textInputId);
+            const btn = document.getElementById(buttonId);
+            if (!fi || !ti || !btn) return;
+            btn.addEventListener('click', () => fi.click());
+            fi.addEventListener('change', () => {
+                const f = fi.files && fi.files[0];
+                if (!f) return;
+                const base = f.name.replace(/^.*[\\/]/, '');
+                ti.value = 'photo/' + base;
+            });
         }
 
         // Загрузка товаров
         async function loadProducts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/products?admin=1`);
+                const response = await adminFetch(`${API_BASE_URL}/products?admin=1`, { headers: adminAuthHeaders() });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
                 
                 // Проверяем, что ответ действительно JSON
                 const contentType = response.headers.get('content-type');
@@ -261,64 +1018,56 @@
                 renderProducts(products);
             } catch (error) {
                 console.error('Ошибка загрузки:', error);
-                showMessage('Ошибка загрузки товаров: ' + error.message, true);
-                document.getElementById('products-list').innerHTML = '<div class="text-center text-red-400 py-8">Ошибка загрузки: ' + error.message + '</div>';
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут при загрузке списка' : (error && error.message);
+                showMessage('Ошибка загрузки товаров: ' + msg, true);
+                currentProducts = [];
+                document.getElementById('products-list').innerHTML = '<div class="text-center text-red-300 py-8">Ошибка загрузки: ' + adminEscapeHtml(msg) + '</div>';
             }
         }
 
-        // Отображение товаров
+        // Отображение товаров (полный список в currentProducts для editProduct; на экране — фильтр и группировка)
         function renderProducts(products) {
-            currentProducts = products; // Сохраняем для редактирования
-            const container = document.getElementById('products-list');
-            if (products.length === 0) {
-                container.innerHTML = '<div class="text-center text-amber-300 py-8">Товары не найдены</div>';
-                return;
-            }
-
-            container.innerHTML = products.map(product => `
-                <div class="bg-slate-700/50 rounded-lg p-4 border border-amber-800 flex items-center gap-4">
-                    <img src="${mediaUrl(product.image)}" alt="${product.name}" class="w-20 h-20 object-cover rounded-lg bg-slate-600" onerror="this.src='/photo/4K.png'">
-                    <div class="flex-1">
-                        <h3 class="font-bold text-amber-300">${product.name}</h3>
-                        <p class="text-sm text-slate-400">${product.cpu || ''} ${product.gpu || ''}</p>
-                        <p class="text-amber-400 font-bold mt-1">${parseFloat(product.price).toLocaleString()} ₽</p>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <button type="button" onclick="window.toggleActive(${product.id}, ${product.is_active ? 0 : 1})" class="px-3 py-1.5 rounded-full text-xs font-medium transition ${product.is_active ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} cursor-pointer text-white border border-white/20 hover:border-white/50 min-w-[80px]">
-                            ${product.is_active ? '✓ Активен' : '✗ Неактивен'}
-                        </button>
-                        <button type="button" onclick="window.editProduct(${product.id})" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg transition shadow hover:shadow-lg min-w-[40px] h-[40px] flex items-center justify-center" title="Редактировать товар">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button type="button" onclick="window.deleteProduct(${product.id})" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg transition shadow hover:shadow-lg min-w-[40px] h-[40px] flex items-center justify-center" title="Удалить товар">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            currentProducts = Array.isArray(products) ? products : [];
+            refreshAdminProductsListView();
         }
 
         // Добавление товара
         document.getElementById('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
             const productData = {
                 category_id: document.getElementById('product-category').value,
                 name: document.getElementById('product-name').value,
-                price: parseFloat(document.getElementById('product-price').value),
+                price: Math.round(parseFloat(document.getElementById('product-price').value) || 0),
                 image: document.getElementById('product-image').value,
                 cpu: document.getElementById('product-cpu').value || null,
                 gpu: document.getElementById('product-gpu').value || null,
                 description: document.getElementById('product-description').value || null,
-                is_active: document.getElementById('product-active').checked ? 1 : 0
+                is_active: document.getElementById('product-active').checked ? 1 : 0,
+                config_json: adminBuildConfigJson({
+                    categoryEl: document.getElementById('product-category'),
+                    nameEl: document.getElementById('product-name'),
+                    priceEl: document.getElementById('product-price'),
+                    imageEl: document.getElementById('product-image'),
+                    cpuEl: document.getElementById('product-cpu'),
+                    gpuEl: document.getElementById('product-gpu'),
+                    descEl: document.getElementById('product-description'),
+                    optCpuEl: document.getElementById('opt-cpu-lines'),
+                    optGpuEl: document.getElementById('opt-gpu-lines'),
+                    optSsdEl: document.getElementById('opt-ssd-lines'),
+                    optWarrantyEl: document.getElementById('opt-warranty-lines'),
+                }),
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/products`, {
+                const response = await adminFetch(`${API_BASE_URL}/products`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
                     body: JSON.stringify(productData)
                 });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
 
                 // Проверяем тип ответа
                 const contentType = response.headers.get('content-type');
@@ -333,13 +1082,21 @@
                 if (result.success) {
                     showMessage('Товар успешно добавлен!');
                     document.getElementById('add-product-form').reset();
+                    document.getElementById('product-description-template').value = '';
+                    const cat = document.getElementById('product-category').value || '4k';
+                    adminPresetToTextareas(cat, '');
                     loadProducts();
                 } else {
                     showMessage('Ошибка: ' + (result.error || 'Неизвестная ошибка'), true);
                 }
             } catch (error) {
                 console.error('Ошибка добавления товара:', error);
-                showMessage('Ошибка: ' + error.message, true);
+                const msg = (error && error.name === 'AbortError')
+                    ? 'Сервер не ответил вовремя — форма снова доступна. Повторите попытку.'
+                    : (error && error.message ? error.message : String(error));
+                showMessage('Ошибка: ' + msg, true);
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
 
@@ -348,11 +1105,12 @@
             try {
                 console.log('Переключение активности товара:', id, 'новый статус:', newStatus);
                 // Используем POST с action=update для надежности
-                const response = await fetch(`${API_BASE_URL}/products?id=${id}&action=update`, {
+                const response = await adminFetch(`${API_BASE_URL}/products?id=${id}&action=update`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
                     body: JSON.stringify({ is_active: newStatus })
                 });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
                 
                 console.log('Ответ сервера:', response.status, response.statusText);
 
@@ -373,9 +1131,15 @@
                 }
             } catch (error) {
                 console.error('Ошибка переключения активности:', error);
-                showMessage('Ошибка: ' + error.message, true);
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут ответа сервера' : (error && error.message);
+                showMessage('Ошибка: ' + msg, true);
             }
         };
+
+        function resetEditModalScroll() {
+            const el = document.getElementById('edit-modal-scroll');
+            if (el) el.scrollTop = 0;
+        }
 
         // Редактирование товара (глобальная функция)
         window.editProduct = async function(id) {
@@ -395,13 +1159,22 @@
             document.getElementById('edit-product-gpu').value = product.gpu || '';
             document.getElementById('edit-product-description').value = product.description || '';
             document.getElementById('edit-product-active').checked = product.is_active == 1;
+            document.getElementById('edit-description-template').value = '';
+            adminLoadConfigEditorsFromProduct(product, 'edit-');
 
             // Показываем модальное окно
-            document.getElementById('edit-modal').classList.remove('hidden');
-            document.getElementById('edit-modal').classList.add('flex');
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            resetEditModalScroll();
+            requestAnimationFrame(() => {
+                resetEditModalScroll();
+                requestAnimationFrame(resetEditModalScroll);
+            });
         };
 
         window.closeEditModal = function() {
+            resetEditModalScroll();
             document.getElementById('edit-modal').classList.add('hidden');
             document.getElementById('edit-modal').classList.remove('flex');
             document.getElementById('edit-product-form').reset();
@@ -410,27 +1183,43 @@
         // Обработчик формы редактирования
         document.getElementById('edit-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
             const productId = document.getElementById('edit-product-id').value;
             const productData = {
                 category_id: document.getElementById('edit-product-category').value,
                 name: document.getElementById('edit-product-name').value,
-                price: parseFloat(document.getElementById('edit-product-price').value),
+                price: Math.round(parseFloat(document.getElementById('edit-product-price').value) || 0),
                 image: document.getElementById('edit-product-image').value,
                 cpu: document.getElementById('edit-product-cpu').value || null,
                 gpu: document.getElementById('edit-product-gpu').value || null,
                 description: document.getElementById('edit-product-description').value || null,
-                is_active: document.getElementById('edit-product-active').checked ? 1 : 0
+                is_active: document.getElementById('edit-product-active').checked ? 1 : 0,
+                config_json: adminBuildConfigJson({
+                    categoryEl: document.getElementById('edit-product-category'),
+                    nameEl: document.getElementById('edit-product-name'),
+                    priceEl: document.getElementById('edit-product-price'),
+                    imageEl: document.getElementById('edit-product-image'),
+                    cpuEl: document.getElementById('edit-product-cpu'),
+                    gpuEl: document.getElementById('edit-product-gpu'),
+                    descEl: document.getElementById('edit-product-description'),
+                    optCpuEl: document.getElementById('edit-opt-cpu-lines'),
+                    optGpuEl: document.getElementById('edit-opt-gpu-lines'),
+                    optSsdEl: document.getElementById('edit-opt-ssd-lines'),
+                    optWarrantyEl: document.getElementById('edit-opt-warranty-lines'),
+                }),
             };
 
             try {
                 console.log('Редактирование товара:', productId, productData);
                 // Используем POST с action=update для надежности
-                const response = await fetch(`${API_BASE_URL}/products?id=${productId}&action=update`, {
+                const response = await adminFetch(`${API_BASE_URL}/products?id=${productId}&action=update`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
                     body: JSON.stringify(productData)
                 });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
                 
                 console.log('Ответ сервера при редактировании:', response.status, response.statusText);
 
@@ -452,7 +1241,12 @@
                 }
             } catch (error) {
                 console.error('Ошибка редактирования товара:', error);
-                showMessage('Ошибка: ' + error.message, true);
+                const msg = (error && error.name === 'AbortError')
+                    ? 'Сервер не ответил вовремя — попробуйте снова.'
+                    : (error && error.message ? error.message : String(error));
+                showMessage('Ошибка: ' + msg, true);
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
 
@@ -461,9 +1255,11 @@
             if (!confirm('Вы уверены, что хотите УДАЛИТЬ этот товар из базы данных? Это действие нельзя отменить!')) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/products?id=${id}`, {
-                    method: 'DELETE'
+                const response = await adminFetch(`${API_BASE_URL}/products?id=${id}`, {
+                    method: 'DELETE',
+                    headers: adminAuthHeaders()
                 });
+                if (response.status === 401) { onAdminUnauthorized(); return; }
 
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
@@ -482,12 +1278,17 @@
                 }
             } catch (error) {
                 console.error('Ошибка удаления товара:', error);
-                showMessage('Ошибка: ' + error.message, true);
+                const msg = (error && error.name === 'AbortError') ? 'Таймаут ответа сервера' : (error && error.message);
+                showMessage('Ошибка: ' + msg, true);
             }
         };
 
         // Обновление списка
         document.getElementById('refresh-products').addEventListener('click', loadProducts);
+        const adminProductsFilterCat = document.getElementById('admin-products-filter-cat');
+        const adminProductsSort = document.getElementById('admin-products-sort');
+        if (adminProductsFilterCat) adminProductsFilterCat.addEventListener('change', refreshAdminProductsListView);
+        if (adminProductsSort) adminProductsSort.addEventListener('change', refreshAdminProductsListView);
 
         // Убеждаемся, что функции доступны глобально
         console.log('Админ-панель инициализирована. Функции:', {

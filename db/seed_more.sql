@@ -7,7 +7,6 @@ BEGIN;
 INSERT INTO products (category_id, name, price, image, cpu, gpu, description, is_active)
 VALUES
 ('4k', 'AURUM 4K Creator', 289990.00, 'photo/pc4_2.jpg', 'Ryzen 9 7950X', 'RTX 4080 SUPER', 'High-end workstation and gaming mix.', true),
-('4k', 'AURUM 4K Streaming', 259990.00, 'photo/pc4_3.jpg', 'i7-14700K', 'RTX 4080', '4K gaming plus streaming profile.', true),
 ('2k', 'AURUM 2K Ultra', 239990.00, 'photo/pc2_2.jpg', 'i7-13700KF', 'RTX 4080 SUPER', 'Performance-focused setup for 2K.', true),
 ('2k', 'AURUM 2K Silent', 184990.00, 'photo/pc2_3.jpg', 'Ryzen 7 7800X3D', 'RTX 4070 SUPER', 'Low-noise optimized 2K build.', true),
 ('2k', 'AURUM 2K Studio', 214990.00, 'photo/pc2_4.jpg', 'i7-14700', 'RTX 4070 Ti SUPER', 'Balanced for design and gaming.', true),

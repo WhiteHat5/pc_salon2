@@ -170,17 +170,20 @@ cd C:\xampp\htdocs\pc_salon
 
 ## 10) Автономный локальный режим (мини-приложение без Telegram)
 
-Цепочка: **браузер → FastAPI (`python_api`) → PostgreSQL**.
+Цепочка: **браузер -> FastAPI (`python_api`) -> PostgreSQL**.
 
 1. Подними БД (скрипты выше) и при необходимости выполни `seed.sql` / `seed_more.sql`.
 2. Запусти API:
    - `C:\xampp\htdocs\pc_salon\run_local_api.ps1`
 3. Открой сайт:
-   - `http://localhost/pc_salon/index.html` (через Apache), или файл `index.html` в браузере.
+   - `http://127.0.0.1:8000/`
 
 В коде включён режим **только база** (`AURUM_DB_ONLY`): каталог и поиск не подмешивают мок-данные, если API недоступен — показывается подсказка. Для старого офлайн-режима в консоли: `window.AURUM_DB_ONLY = false` (до загрузки модульного скрипта это задаётся в отдельной вкладке сложно; проще временно править `index.html`).
 
-Запись в БД с сайта уже идёт через API: заказы (`POST /api/orders`), пользователи (`POST /api/users`), отзывы (`POST /api/reviews`).
+Запись в БД с сайта идёт через API: заказы (`POST /api/orders`), пользователи (`POST /api/users`), отзывы (`POST /api/reviews`).
 
-**Примечание:** админка — статические `admin/products.html` и `admin/orders.html`; они вызывают тот же FastAPI (`/api/products`, `/api/orders`). Удобно открывать через `http://127.0.0.1:8000/admin/` при запуске `run_local_api.ps1`.
+**Примечание:** админка — `admin/products.html` и `admin/orders.html`; они вызывают тот же FastAPI (`/api/products`, `/api/orders`). Открывать через:
+
+- `http://127.0.0.1:8000/admin/products.html`
+- `http://127.0.0.1:8000/admin/orders.html`
 

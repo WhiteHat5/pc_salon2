@@ -1,8 +1,17 @@
 # Быстрый запуск mini app через один ngrok-туннель
 
-Ниже сценарий для текущего проекта без VPS и без второго туннеля.
+Актуальный сценарий для текущего проекта: **только FastAPI + PostgreSQL**, без Apache/XAMPP.
 
-## 1) Запустить Python API (локально)
+## 1) Запустить приложение локально (UI + API)
+
+Из корня проекта:
+
+```powershell
+cd C:\xampp\htdocs\pc_salon
+.\run_local_api.ps1
+```
+
+Или напрямую:
 
 ```powershell
 cd C:\xampp\htdocs\pc_salon\python_api
@@ -11,72 +20,42 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 
 Проверка:
 
+- `http://127.0.0.1:8000/`
 - `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/api/categories`
 
-## 2) Запустить Apache в XAMPP
+## 2) Очистить старое переопределение API URL (если использовалось)
 
-Проверь:
-
-- `http://localhost/pc_salon/index.html`
-
-## 3) Включить Apache-модули для проксирования (один раз)
-
-В `C:\xampp\apache\conf\httpd.conf` должны быть включены строки:
-
-```apache
-LoadModule rewrite_module modules/mod_rewrite.so
-LoadModule proxy_module modules/mod_proxy.so
-LoadModule proxy_http_module modules/mod_proxy_http.so
-LoadModule headers_module modules/mod_headers.so
-```
-
-И для директории `htdocs` должно быть:
-
-```apache
-AllowOverride All
-```
-
-После правок перезапусти Apache.
-
-## 4) Проксирование уже настроено в проекте
-
-В корне проекта создан `C:\xampp\htdocs\pc_salon\.htaccess`:
-
-- все запросы `/pc_salon/api/*` проксируются на `http://127.0.0.1:8000/api/*`
-
-Проверка в браузере:
-
-- `http://localhost/pc_salon/api/health` -> `{"ok": true}`
-- `http://localhost/pc_salon/api/categories` -> JSON с категориями
-
-## 5) Очистить старую API-переопределялку (если использовалась)
-
-Если ранее задавал `localStorage.setItem('API_URL', ...)`, сбрось:
+Если раньше задавался внешний/старый backend через localStorage:
 
 ```js
 localStorage.removeItem('API_URL');
 location.reload();
 ```
 
-Это важно, иначе фронт продолжит ходить на старый URL.
-
-## 6) Поднять один туннель ngrok
+## 3) Поднять ngrok на порт FastAPI
 
 ```powershell
-ngrok http 80
+ngrok http 8000
 ```
 
-Получишь URL вида:
+Получите URL вида:
 
 - `https://xxxx.ngrok-free.app`
 
-## 7) Настроить Telegram кнопку
+## 4) Настроить Telegram Mini App
 
-В BotFather укажи:
+В BotFather для кнопки/веб-аппа укажите:
 
-- `https://xxxx.ngrok-free.app/pc_salon/index.html`
+- `https://xxxx.ngrok-free.app/`
 
-Теперь и фронт, и API идут через один домен:
+Теперь всё идет через один домен:
 
-- фронт: `https://xxxx.ngrok-free.app/pc_salon/index.html`
-- API: `https://xxxx.ngrok-free.app/pc_salon/api/*`
+- фронт: `https://xxxx.ngrok-free.app/`
+- API: `https://xxxx.ngrok-free.app/api/*`
+- админка: `https://xxxx.ngrok-free.app/admin/products.html` и `.../admin/orders.html`
+
+## 5) Примечание про `.htaccess`
+
+Файл `.htaccess` можно оставить как исторический/опциональный артефакт.  
+В текущем режиме FastAPI он не требуется для работы mini app.

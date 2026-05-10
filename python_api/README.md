@@ -36,7 +36,7 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ## 4) Test
 
 - Health: `http://127.0.0.1:8000/health`
-- Categories: `http://127.0.0.1:8000/api/categories` (дубли с суффиксом `.php` тоже работают)
+- Categories: `http://127.0.0.1:8000/api/categories`
 - Products: `http://127.0.0.1:8000/api/products`
 
 ## 5) Frontend
