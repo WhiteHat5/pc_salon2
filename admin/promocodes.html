@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#151b28" />
-    <title>Отзывы — AURUM</title>
+    <title>Промокоды — AURUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -82,26 +82,40 @@
         <a href="#" class="admin-fallback-shop admin-back-fab hidden fixed left-3 top-14 z-[60]" title="В магазин"><i class="fas fa-arrow-left"></i></a>
         <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center sm:pl-12">
             <div>
-                <h1 class="text-2xl font-bold mb-1"><i class="fas fa-star mr-2 text-[#8ec8ff]"></i>Отзывы</h1>
-                <p class="text-sm text-[#b8c4d4]">Модерация: публикация на витрине</p>
+                <h1 class="text-2xl font-bold mb-1"><i class="fas fa-ticket-alt mr-2 text-[#8ec8ff]"></i>Промокоды</h1>
+                <p class="text-sm text-[#b8c4d4]">Коды сертификатов и скидка % (активация в мини-приложении)</p>
             </div>
             <div class="flex flex-wrap gap-3">
                 <a href="products.html" class="admin-btn-ice"><i class="fas fa-box"></i>Товары</a>
                 <a href="orders.html" class="admin-btn-ice"><i class="fas fa-shopping-cart"></i>Заказы</a>
-                <a href="promocodes.html" class="admin-btn-ice"><i class="fas fa-ticket-alt"></i>Промокоды</a>
+                <a href="reviews.html" class="admin-btn-ice"><i class="fas fa-star"></i>Отзывы</a>
                 <button type="button" id="admin-logout" class="admin-btn-danger"><i class="fas fa-sign-out-alt"></i>Выход</button>
             </div>
         </div>
-        <div class="admin-panel rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
-            <label class="text-sm text-[#8ec8ff]">Фильтр:</label>
-            <select id="rev-filter" class="p-2.5 rounded-xl min-w-[10rem]">
-                <option value="all">Все</option>
-                <option value="pending">На модерации</option>
-                <option value="published">Опубликованные</option>
-            </select>
-            <button type="button" id="rev-refresh" class="admin-btn-muted"><i class="fas fa-sync-alt"></i>Обновить</button>
+
+        <div class="admin-panel rounded-xl p-4 mb-6">
+            <h2 class="text-lg font-semibold text-[#8ec8ff] mb-3">Новый промокод</h2>
+            <form id="promo-create-form" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
+                <div class="flex-1 min-w-[8rem]">
+                    <label class="block text-xs mb-1">Код</label>
+                    <input type="text" id="promo-new-code" class="w-full p-2.5 rounded-xl uppercase" maxlength="64" autocomplete="off" placeholder="Например SUMMER10">
+                </div>
+                <div class="w-full sm:w-28">
+                    <label class="block text-xs mb-1">Скидка %</label>
+                    <input type="number" id="promo-new-pct" class="w-full p-2.5 rounded-xl" min="0.01" max="100" step="0.01" value="5">
+                </div>
+                <div class="flex items-center gap-2 pb-2">
+                    <input type="checkbox" id="promo-new-active" checked class="w-4 h-4 rounded">
+                    <label for="promo-new-active" class="text-sm">Активен</label>
+                </div>
+                <button type="submit" class="admin-btn-ice"><i class="fas fa-plus"></i>Создать</button>
+            </form>
         </div>
-        <div id="rev-list" class="space-y-3"></div>
+
+        <div class="admin-panel rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
+            <button type="button" id="promo-refresh" class="admin-btn-muted"><i class="fas fa-sync-alt"></i>Обновить</button>
+        </div>
+        <div id="promo-list" class="space-y-3"></div>
     </div>
 </div>
 <script>
@@ -164,73 +178,97 @@
             return r.ok;
         } catch (e) { return false; }
     }
-    let allReviews = [];
-    function applyFilter(rows) {
-        const f = document.getElementById('rev-filter').value;
-        if (f === 'pending') return rows.filter(r => !r.is_published);
-        if (f === 'published') return rows.filter(r => !!r.is_published);
-        return rows;
-    }
+    let allPromos = [];
     function renderList() {
-        const box = document.getElementById('rev-list');
-        const rows = applyFilter(allReviews);
-        if (!rows.length) {
-            box.innerHTML = '<p class="text-[#b8c4d4] text-center py-8">Нет отзывов по фильтру</p>';
+        const box = document.getElementById('promo-list');
+        if (!allPromos.length) {
+            box.innerHTML = '<p class="text-[#b8c4d4] text-center py-8">Нет промокодов (примените миграцию БД и перезапустите API)</p>';
             return;
         }
-        box.innerHTML = rows.map(r => {
-            const items = Array.isArray(r.order_items) ? r.order_items : [];
-            const itemsHtml = items.length
-                ? `<ul class="mt-2 text-xs text-[#b8c4d4] space-y-0.5">${items.map(it => `<li>• ${esc(it.item_name)}${it.quantity > 1 ? ` ×${it.quantity}` : ''}</li>`).join('')}</ul>`
-                : '';
-            const pub = !!r.is_published;
-            return `<div class="admin-panel rounded-xl p-4" data-id="${r.id}">
-                <div class="flex flex-wrap justify-between gap-2 items-start">
+        box.innerHTML = allPromos.map(p => {
+            const active = !!p.is_active;
+            return `<div class="admin-panel rounded-xl p-4" data-id="${p.id}">
+                <div class="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                     <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-amber-300 font-semibold">${esc(r.title || 'Без заголовка')}</span>
-                            <span class="text-xs px-2 py-0.5 rounded-full ${pub ? 'bg-emerald-600/40 text-emerald-200' : 'bg-amber-600/30 text-amber-200'}">${pub ? 'Опубликован' : 'На модерации'}</span>
-                        </div>
-                        <div class="text-xs text-[#8b97ab] mt-1">#${r.id} · заказ ${r.order_id != null ? '#' + r.order_id : '—'} · ${esc(r.created_at || '')}</div>
-                        <div class="text-sm text-[#f2ebe1] mt-2 whitespace-pre-wrap">${esc(r.comment || '')}</div>
-                        ${itemsHtml}
+                        <div class="font-mono text-amber-200 font-bold text-lg">${esc(p.code)}</div>
+                        <div class="text-xs text-[#8b97ab] mt-1">id ${p.id} · обновл. ${esc(p.updated_at || '')}</div>
+                        ${p.note ? `<div class="text-xs text-[#b8c4d4] mt-1">${esc(p.note)}</div>` : ''}
                     </div>
-                    <div class="flex flex-col gap-2 shrink-0">
-                        <button type="button" class="rev-toggle px-3 py-2 rounded-lg text-sm font-semibold ${pub ? 'admin-btn-muted' : 'admin-btn-ice'}" data-id="${r.id}" data-next="${pub ? '0' : '1'}">${pub ? 'Снять с публикации' : 'Опубликовать'}</button>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <label class="text-xs text-[#8ec8ff]">%</label>
+                        <input type="number" class="promo-pct w-24 p-2 rounded-xl text-sm" min="0.01" max="100" step="0.01" value="${esc(p.discount_percent)}" data-id="${p.id}">
+                        <label class="flex items-center gap-1 text-sm cursor-pointer">
+                            <input type="checkbox" class="promo-active w-4 h-4" data-id="${p.id}" ${active ? 'checked' : ''}> Активен
+                        </label>
+                        <button type="button" class="promo-save admin-btn-ice text-sm" data-id="${p.id}"><i class="fas fa-save"></i>Сохранить</button>
+                        <button type="button" class="promo-del admin-btn-danger text-sm" data-id="${p.id}"><i class="fas fa-trash-alt"></i>Удалить</button>
                     </div>
                 </div>
             </div>`;
         }).join('');
-        box.querySelectorAll('.rev-toggle').forEach(btn => {
+        box.querySelectorAll('.promo-save').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const id = parseInt(btn.getAttribute('data-id'), 10);
-                const next = btn.getAttribute('data-next') === '1';
+                const row = box.querySelector(`.admin-panel[data-id="${id}"]`);
+                const pctEl = row && row.querySelector('.promo-pct');
+                const actEl = row && row.querySelector('.promo-active');
+                const pct = parseFloat(pctEl && pctEl.value);
+                if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+                    alert('Укажите процент от 0.01 до 100');
+                    return;
+                }
                 btn.disabled = true;
                 try {
-                    const r = await adminFetch(`${API_BASE_URL}/reviews/${id}`, {
+                    const r = await adminFetch(`${API_BASE_URL}/admin/promo-codes/${id}`, {
                         method: 'PATCH',
                         headers: mergeH({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
-                        body: JSON.stringify({ is_published: next })
+                        body: JSON.stringify({
+                            discount_percent: pct,
+                            is_active: !!(actEl && actEl.checked)
+                        })
                     });
                     const d = await r.json().catch(() => ({}));
                     if (!r.ok) throw new Error(d.error || 'Ошибка');
-                    await loadReviews();
+                    await loadPromos();
                 } catch (e) {
-                    alert(e.message || 'Не удалось обновить');
+                    alert(e.message || 'Не удалось сохранить');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+        box.querySelectorAll('.promo-del').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = parseInt(btn.getAttribute('data-id'), 10);
+                const row = box.querySelector(`.admin-panel[data-id="${id}"]`);
+                const codeEl = row && row.querySelector('.font-mono');
+                const codeHint = codeEl ? codeEl.textContent.trim() : '';
+                if (!confirm(codeHint ? `Удалить промокод «${codeHint}»?` : 'Удалить этот промокод?')) return;
+                btn.disabled = true;
+                try {
+                    const r = await adminFetch(`${API_BASE_URL}/admin/promo-codes/${id}`, {
+                        method: 'DELETE',
+                        headers: adminAuthHeaders()
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (!r.ok) throw new Error(d.error || 'Ошибка');
+                    await loadPromos();
+                } catch (e) {
+                    alert(e.message || 'Не удалось удалить');
                 } finally {
                     btn.disabled = false;
                 }
             });
         });
     }
-    async function loadReviews() {
-        const box = document.getElementById('rev-list');
+    async function loadPromos() {
+        const box = document.getElementById('promo-list');
         box.innerHTML = '<p class="text-[#b8c4d4] text-center py-6">Загрузка…</p>';
         try {
-            const r = await adminFetch(`${API_BASE_URL}/reviews?admin=1`, { headers: adminAuthHeaders() });
+            const r = await adminFetch(`${API_BASE_URL}/admin/promo-codes`, { headers: adminAuthHeaders() });
             const d = await r.json().catch(() => ({}));
             if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
-            allReviews = d.reviews || d.data || [];
+            allPromos = d.promo_codes || d.data || [];
             renderList();
         } catch (e) {
             box.innerHTML = `<p class="text-red-300 text-center py-6">${esc(e.message)}</p>`;
@@ -244,7 +282,7 @@
             if (await adminSessionOk()) {
                 loginEl.classList.add('hidden');
                 appEl.classList.remove('hidden');
-                await loadReviews();
+                await loadPromos();
             }
         })();
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
@@ -275,8 +313,28 @@
             sessionStorage.removeItem(ADMIN_TOKEN_KEY);
             location.reload();
         });
-        document.getElementById('rev-filter')?.addEventListener('change', () => renderList());
-        document.getElementById('rev-refresh')?.addEventListener('click', () => loadReviews());
+        document.getElementById('promo-refresh')?.addEventListener('click', () => loadPromos());
+        document.getElementById('promo-create-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = document.getElementById('promo-new-code').value.trim();
+            const pct = parseFloat(document.getElementById('promo-new-pct').value);
+            const is_active = document.getElementById('promo-new-active').checked;
+            if (!code) { alert('Введите код'); return; }
+            if (!Number.isFinite(pct) || pct <= 0 || pct > 100) { alert('Процент 0.01–100'); return; }
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/promo-codes`, {
+                    method: 'POST',
+                    headers: mergeH({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                    body: JSON.stringify({ code: code.toUpperCase(), discount_percent: pct, is_active })
+                });
+                const d = await r.json().catch(() => ({}));
+                if (!r.ok) throw new Error(d.error || 'Ошибка');
+                document.getElementById('promo-new-code').value = '';
+                await loadPromos();
+            } catch (err) {
+                alert(err.message || 'Не удалось создать');
+            }
+        });
     });
 })();
 </script>

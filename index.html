@@ -285,6 +285,18 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
+
+    /* Фиксированная панель конфигуратора — тот же фон/рамка, что у нижней навигации (элемент div, не nav) */
+    #configurator-bottom-actions.aurum-premium-nav {
+      background: linear-gradient(180deg, rgba(10, 14, 22, 0.92) 0%, rgba(5, 8, 14, 0.96) 100%) !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.11) !important;
+      box-shadow:
+        0 -12px 40px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px) saturate(118%);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      overflow-x: hidden;
+    }
     /* Цифры — цвет «тела» панели, не подписи вкладок и не белый */
     nav.aurum-premium-nav #bottom-cart-count,
     nav.aurum-premium-nav #bottom-fav-count {
@@ -647,6 +659,44 @@
     #reviews-pending-list .text-amber-300\/60 {
       color: rgba(184, 196, 212, 0.65) !important;
     }
+
+    /* Отзывы покупателей (глобальная лента) — тот же премиум-стиль, что «Мои отзывы» */
+    #reviews-global h2.text-amber-400 {
+      color: #f2ebe1 !important;
+    }
+    #reviews-global > div > p.text-amber-300\/70,
+    #reviews-global p.text-amber-300\/70 {
+      color: rgba(184, 196, 212, 0.72) !important;
+    }
+    #reviews-global-list .card-base {
+      background: linear-gradient(152deg, rgba(238, 242, 252, 0.1) 0%, rgba(238, 242, 252, 0.05) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.11) !important;
+      backdrop-filter: blur(10px) saturate(118%);
+    }
+    #reviews-global-list h4.text-amber-300,
+    #reviews-global-list .text-amber-300 {
+      color: #f2ebe1 !important;
+    }
+    #reviews-global-list .text-amber-300\/60 {
+      color: rgba(184, 196, 212, 0.65) !important;
+    }
+    #reviews-global-list span.text-amber-400 {
+      color: #8ec8ff !important;
+    }
+    #reviews-global-list .border-amber-800\/40 {
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    #reviews-global-list p.text-white,
+    #reviews-global-list .text-white {
+      color: rgba(242, 235, 225, 0.96) !important;
+    }
+    /* Строка «Товар: …» — тот же акцент, что у подписи CPU|GPU на карточках категорий (code.text-amber-300) */
+    #reviews-global-list .reviews-global-product-line {
+      color: #8ec8ff !important;
+    }
+    #reviews-global-list .reviews-global-product-line .font-semibold {
+      color: #8ec8ff !important;
+    }
     #reviews-published-list span.text-amber-400,
     #reviews-pending-list span.text-amber-400 {
       color: #8ec8ff !important;
@@ -783,15 +833,26 @@
     #search-results .font-bold.text-amber-400 {
       color: #f2ebe1 !important;
     }
+    /* Иконки корзины/избранного — как на карточках в категориях (#products-*-grid button.text-amber-400 → #8ec8ff) */
     #configurator #config-go-to-cart,
-    #configurator #config-add-to-fav {
+    #configurator #config-add-to-fav,
+    #configurator-bottom-actions #config-go-to-cart,
+    #configurator-bottom-actions #config-add-to-fav {
       color: #8ec8ff !important;
       background: rgba(14, 20, 32, 0.58) !important;
       border: 1px solid rgba(142, 200, 255, 0.2) !important;
     }
     #configurator #config-go-to-cart:hover,
-    #configurator #config-add-to-fav:hover {
+    #configurator #config-add-to-fav:hover,
+    #configurator-bottom-actions #config-go-to-cart:hover,
+    #configurator-bottom-actions #config-add-to-fav:hover {
       background: rgba(110, 176, 240, 0.12) !important;
+    }
+    #configurator #config-go-to-cart i,
+    #configurator #config-add-to-fav i,
+    #configurator-bottom-actions #config-go-to-cart i,
+    #configurator-bottom-actions #config-add-to-fav i {
+      color: #8ec8ff !important;
     }
     #configurator label.bg-slate-700 {
       background: rgba(14, 20, 32, 0.5) !important;
@@ -1183,13 +1244,19 @@
     #favorites #favorites-list .hover\:text-sky-200:hover {
       color: #f2ebe1 !important;
     }
-    #configurator #config-add-to-fav.bg-red-600 {
+    #configurator #config-add-to-fav.bg-red-600,
+    #configurator-bottom-actions #config-add-to-fav.bg-red-600 {
       background: linear-gradient(180deg, #c95a6c 0%, #8f3d4c 100%) !important;
       color: #fff !important;
       border: 1px solid rgba(255, 255, 255, 0.14) !important;
     }
-    #configurator #config-add-to-fav.bg-red-600:hover {
+    #configurator #config-add-to-fav.bg-red-600:hover,
+    #configurator-bottom-actions #config-add-to-fav.bg-red-600:hover {
       filter: brightness(1.06);
+    }
+    #configurator #config-add-to-fav.bg-red-600 i,
+    #configurator-bottom-actions #config-add-to-fav.bg-red-600 i {
+      color: #fff !important;
     }
 
     /* Шаг 13: типографика модалок (белый→шампань), сводка оплаты, вторичная кнопка отзыва в заказах */
@@ -1516,15 +1583,15 @@
         <div id="reviews-pending-content" class="reviews-content hidden">
           <div id="reviews-pending-list" class="space-y-4"></div>
           <div id="reviews-pending-empty" class="flex flex-col items-center justify-center min-h-[60vh]">
-            <div class="text-center text-amber-300 text-xl mb-2">Тут пока пусто</div>
-            <div class="text-center text-amber-300/60 text-sm">Отзывы оставлять некому</div>
+            <div class="text-center text-amber-300 text-xl mb-2">Нет заказов</div>
+            <div class="text-center text-amber-300/60 text-sm">Нет заказов, по которым можно оставить отзыв</div>
           </div>
         </div>
       </div>
     </section>
 
     <section id="reviews-global" class="tab" aria-hidden="true" style="padding-top: 1rem; padding-bottom: 1rem;">
-      <div class="max-w-md mx-auto px-4 pb-8">
+      <div class="max-w-md mx-auto px-4 pb-8 reviews-global-shell">
         <h2 class="text-xl font-bold text-amber-400 mb-2">Отзывы покупателей</h2>
         <p class="text-sm text-amber-300/70 mb-4">Что говорят клиенты о AURUM</p>
         <div id="reviews-global-list" class="space-y-3"></div>
@@ -1954,7 +2021,7 @@
     </section>
 
     <!-- Страница конфигуратора ПК -->
-    <section id="configurator" class="tab" aria-hidden="true" style="padding-top: 1rem; padding-bottom: 1rem;">
+    <section id="configurator" class="tab" aria-hidden="true" style="padding-top: 1rem; padding-bottom: 5.5rem;">
       <div id="configurator-content" class="max-w-2xl mx-auto"></div>
     </section>
 
@@ -2118,7 +2185,7 @@
             <textarea id="delivery-address" required maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Укажите адрес доставки"></textarea>
           </div>
           <div>
-            <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий <span class="text-amber-400/60 font-normal">(до 500 символов)</span></label>
+            <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий <span class="text-slate-300/90 font-normal">(до 500 символов)</span></label>
             <textarea id="delivery-comment" maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Дополнительная информация (необязательно)"></textarea>
           </div>
         </div>
@@ -2138,7 +2205,7 @@
             <input type="tel" id="pickup-phone" required maxlength="22" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" placeholder="+7(999)123-45-67" />
           </div>
           <div>
-            <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий <span class="text-amber-400/60 font-normal">(до 500 символов)</span></label>
+            <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий <span class="text-slate-300/90 font-normal">(до 500 символов)</span></label>
             <textarea id="pickup-comment" maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Дополнительная информация (необязательно)"></textarea>
           </div>
         </div>
@@ -2271,6 +2338,11 @@
     </div>
 
   </main>
+</div>
+
+<!-- Фиксированная панель конфигуратора (корзина / избранное) — вместо основной навигации на вкладке конфигуратора -->
+<div id="configurator-bottom-actions" class="aurum-premium-nav fixed bottom-0 left-0 right-0 w-full max-w-full min-w-0 z-50 hidden">
+  <div id="configurator-bottom-actions-inner" class="max-w-2xl mx-auto px-3 sm:px-4 py-2 box-border"></div>
 </div>
 
 <!-- Нижняя навигация (фиксированная); шаг 0–14 (финал): см. блоки «Шаг N» в <style> -->
@@ -3422,6 +3494,54 @@ const CATEGORY_STATE = {
 // Текущая категория, для которой открыты модальные окна сортировки/фильтров
 let currentModalCategory = null;
 
+const DEPOSIT_HISTORY_MAX_ENTRIES = 20;
+
+function collectAllCategoryShopPrices() {
+  const prices = [];
+  ['4k', '2k', 'fullhd'].forEach((cat) => {
+    const list = CATEGORY_PRODUCTS[cat];
+    if (!Array.isArray(list)) return;
+    list.forEach((p) => {
+      const pr = Number(p && p.price);
+      if (Number.isFinite(pr) && pr > 0) prices.push(pr);
+    });
+  });
+  return prices;
+}
+
+/** Глобальный диапазон цен ПК по всем категориям магазина (карточки каталога). */
+function getGlobalPcPriceBounds() {
+  const prices = collectAllCategoryShopPrices();
+  if (!prices.length) return { min: 0, max: 0 };
+  return { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) };
+}
+
+function applyPriceFilterInputsBounds() {
+  const fromEl = qs('#price-from');
+  const toEl = qs('#price-to');
+  if (!fromEl || !toEl) return;
+  const { min, max } = getGlobalPcPriceBounds();
+  if (min <= 0 && max <= 0) return;
+  fromEl.min = String(min);
+  fromEl.max = String(max);
+  toEl.min = String(min);
+  toEl.max = String(max);
+  fromEl.placeholder = `от ${min.toLocaleString('ru-RU')}`;
+  toEl.placeholder = `до ${max.toLocaleString('ru-RU')}`;
+}
+
+function isConfiguratorViewActive() {
+  const el = qs('#configurator');
+  return !!(el && el.getAttribute('aria-hidden') === 'false');
+}
+
+function resetTopupAndCertificateInputs() {
+  const top = qs('#topup-amount');
+  if (top) top.value = '';
+  const cert = qs('#certificate-code');
+  if (cert) cert.value = '';
+}
+
 // -----------------------------
 // Утилиты
 // -----------------------------
@@ -3735,8 +3855,19 @@ function getFavoriteCardDescription(p, idStr) {
   const sid = String(idStr != null ? idStr : (p && p.id) || '');
   if (sid.startsWith('config-')) {
     const configData = safeLocalStorageGet(`fav_config_${sid}`, null) || safeLocalStorageGet(`config_${sid}`, null);
-    if (configData && PRODUCT_CONFIGS[configData.productId]) {
-      return teaserFromMultiLineDesc(PRODUCT_CONFIGS[configData.productId].description || '');
+    if (configData) {
+      const pid = configData.productId;
+      if (pid != null && pid !== '') {
+        const apiP = findLoadedApiProductById(Number(pid));
+        if (apiP && apiP.description != null && String(apiP.description).trim()) {
+          let t = teaserFromMultiLineDesc(String(apiP.description));
+          if (t.length > 160) t = t.slice(0, 157) + '…';
+          return t;
+        }
+      }
+      if (PRODUCT_CONFIGS[configData.productId]) {
+        return teaserFromMultiLineDesc(PRODUCT_CONFIGS[configData.productId].description || '');
+      }
     }
     return '';
   }
@@ -3779,6 +3910,19 @@ const AURUM_TELEGRAM_ID_STORAGE_KEY = 'aurum_saved_telegram_id';
 const AURUM_LAST_ORDER_PHONE_KEY = 'aurum_last_order_phone';
 const LOCAL_ORDERS_CACHE_KEY = 'aurum_local_orders_cache_v1';
 const DEPOSIT_HISTORY_STORAGE_KEY = 'aurum_deposit_history_v1';
+const DEPOSIT_HISTORY_REV_STORAGE_KEY = 'aurum_deposit_history_rev_v1';
+
+function getDepositHistoryRevisionKnown() {
+  const v = safeLocalStorageGet(DEPOSIT_HISTORY_REV_STORAGE_KEY, 0);
+  const n = typeof v === 'number' ? v : parseInt(String(v), 10);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+
+function setDepositHistoryRevisionKnown(rev) {
+  const n = Math.max(0, Math.floor(Number(rev)) || 0);
+  safeLocalStorageSet(DEPOSIT_HISTORY_REV_STORAGE_KEY, n);
+}
+
 let USER_STATE_SYNC_READY = false;
 let userStateSyncTimer = null;
 let userStateHydratedOnce = false;
@@ -3852,13 +3996,18 @@ function scheduleUserStateSyncFromLocal() {
   if (userStateSyncTimer) clearTimeout(userStateSyncTimer);
   userStateSyncTimer = setTimeout(async () => {
     try {
-      await window.API.userState.save({
+      const state = await window.API.userState.save({
         telegram_id: tid,
         cart_items: cart.items.map((x) => ({ id: String(x.id), qty: Math.max(1, Number(x.qty) || 1) })),
         favorite_ids: favs.ids.map((x) => String(x)),
-        profile_finance: { ...getProfileFinance(), deposit_history: getDepositHistory() },
+        profile_finance: {
+          ...getProfileFinance(),
+          deposit_history: getDepositHistory(),
+          deposit_history_revision: getDepositHistoryRevisionKnown()
+        },
         cart_configs: buildCartConfigsForSync(),
       });
+      if (state && state.profile_finance) syncLocalDepositHistoryFromServerFinance(state.profile_finance);
     } catch (e) {
       console.warn('User state sync failed:', e);
     }
@@ -4124,18 +4273,47 @@ function mergeDepositHistoryLists(localRows, serverRows) {
     if (!n || !n.id) continue;
     map.set(n.id, n);
   }
-  return Array.from(map.values()).sort((a, b) => {
+  return Array.from(map.values())
+    .sort((a, b) => {
     const ta = new Date(a.created_at || 0).getTime();
     const tb = new Date(b.created_at || 0).getTime();
     return tb - ta;
-  });
+  })
+    .slice(0, DEPOSIT_HISTORY_MAX_ENTRIES);
 }
 
-function mergeDepositHistoryFromServer(serverRaw) {
-  const serverList = Array.isArray(serverRaw) ? serverRaw : [];
+function mergeDepositHistoryFromServer(serverRaw, serverRevision) {
+  const serverRev = Number(serverRevision);
+  const r = Number.isFinite(serverRev) && serverRev >= 0 ? Math.floor(serverRev) : 0;
+  const localRev = getDepositHistoryRevisionKnown();
+  const serverList = (Array.isArray(serverRaw) ? serverRaw : [])
+    .map((e) => normalizeDepositHistoryRow(e))
+    .filter(Boolean)
+    .slice(0, DEPOSIT_HISTORY_MAX_ENTRIES);
+
+  if (r > localRev || r < localRev) {
+    safeLocalStorageSet(DEPOSIT_HISTORY_STORAGE_KEY, serverList);
+    setDepositHistoryRevisionKnown(r);
+    return;
+  }
   const local = getDepositHistory();
-  const merged = mergeDepositHistoryLists(local, serverList.map((e) => normalizeDepositHistoryRow(e)).filter(Boolean));
-  safeLocalStorageSet(DEPOSIT_HISTORY_STORAGE_KEY, merged.slice(0, 100));
+  const merged = mergeDepositHistoryLists(local, serverList);
+  safeLocalStorageSet(DEPOSIT_HISTORY_STORAGE_KEY, merged.slice(0, DEPOSIT_HISTORY_MAX_ENTRIES));
+  setDepositHistoryRevisionKnown(r);
+}
+
+function syncLocalDepositHistoryFromServerFinance(pf) {
+  if (!pf || typeof pf !== 'object') return;
+  const revRaw = pf.deposit_history_revision;
+  const rev = Number(revRaw);
+  const r = Number.isFinite(rev) && rev >= 0 ? Math.floor(rev) : 0;
+  setDepositHistoryRevisionKnown(r);
+  const dep = pf.deposit_history;
+  const list = (Array.isArray(dep) ? dep : [])
+    .map((e) => normalizeDepositHistoryRow(e))
+    .filter(Boolean)
+    .slice(0, DEPOSIT_HISTORY_MAX_ENTRIES);
+  safeLocalStorageSet(DEPOSIT_HISTORY_STORAGE_KEY, list);
 }
 
 function getDepositHistory() {
@@ -4143,7 +4321,8 @@ function getDepositHistory() {
   if (!Array.isArray(raw)) return [];
   return raw
     .map((e) => normalizeDepositHistoryRow(e))
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, DEPOSIT_HISTORY_MAX_ENTRIES);
 }
 
 function appendDepositHistoryEntry(amount, balanceAfter) {
@@ -4158,7 +4337,7 @@ function appendDepositHistoryEntry(amount, balanceAfter) {
   };
   const list = getDepositHistory().filter(row => row.id !== entry.id);
   list.unshift(entry);
-  safeLocalStorageSet(DEPOSIT_HISTORY_STORAGE_KEY, list.slice(0, 100));
+  safeLocalStorageSet(DEPOSIT_HISTORY_STORAGE_KEY, list.slice(0, DEPOSIT_HISTORY_MAX_ENTRIES));
 }
 
 async function loadDepositHistory() {
@@ -4173,8 +4352,9 @@ async function loadDepositHistory() {
     emptyEl.innerHTML = aurumLoadingMarkup('Обновление истории…', 'Синхронизация с сервером');
     try {
       const state = await window.API.userState.getByTelegramId(tid);
-      const remote = state && state.profile_finance && state.profile_finance.deposit_history;
-      mergeDepositHistoryFromServer(remote);
+      const pf = state && state.profile_finance;
+      const remote = pf && pf.deposit_history;
+      mergeDepositHistoryFromServer(remote, pf && pf.deposit_history_revision);
     } catch (e) {
       console.warn('loadDepositHistory: server merge skipped', e);
     }
@@ -4396,6 +4576,7 @@ function debounce(fn, ms=300) {
 // Система истории навигации
 // -----------------------------
 const navigationHistory = [];
+let aurumPreviousTabId = 'catalog';
 let isNavigatingBack = false;
 
 // Добавить страницу в историю
@@ -4612,8 +4793,11 @@ function findProductById(id){
 // Вспомогательная функция для получения данных конфигурированного товара
 function getConfigProductData(idStr, configData){
   const isChanged = isConfigChanged(configData.productId, configData.config);
-  const name = configData.baseName;
   const baseProduct = findProductById(configData.productId);
+  const name =
+    (configData.baseName && String(configData.baseName).trim()) ||
+    (baseProduct && (baseProduct.name || getDisplayCpuGpuTitle(baseProduct))) ||
+    'Сборка ПК';
   const category_id = baseProduct && baseProduct.category_id != null ? baseProduct.category_id : null;
   let specs;
   if(isChanged){
@@ -4779,7 +4963,7 @@ function applyUserStateFromServerPayload(state) {
   safeLocalStorageSet(favs.key, favs.ids);
   const serverFinance = state.profile_finance && typeof state.profile_finance === 'object' ? state.profile_finance : null;
   if (serverFinance) {
-    mergeDepositHistoryFromServer(serverFinance.deposit_history);
+    mergeDepositHistoryFromServer(serverFinance.deposit_history, serverFinance.deposit_history_revision);
     saveProfileFinance(serverFinance);
     renderProfileFinance();
   }
@@ -5085,14 +5269,19 @@ function confirmRemoveCartItem(itemTitle) {
   });
 }
 
-function buildCartConfigLinesHtml(configData) {
-  if (!configData || !configData.config) return '';
+function getCartConfigLineRows(configData) {
+  if (!configData || !configData.config) return [];
   const c = configData.config;
   const lines = [];
   if (c.cpu && c.cpu.name) lines.push({ l: 'Процессор', v: c.cpu.name });
   if (c.gpu && c.gpu.name) lines.push({ l: 'Видеокарта', v: c.gpu.name });
   if (c.ssd && c.ssd.name) lines.push({ l: 'Объём SSD', v: c.ssd.name });
   if (c.warranty && c.warranty.name) lines.push({ l: 'Гарантия', v: c.warranty.name });
+  return lines;
+}
+
+function buildCartConfigLinesHtml(configData) {
+  const lines = getCartConfigLineRows(configData);
   if (!lines.length) return '';
   return `<div class="mt-1.5 space-y-0.5 w-full min-w-0">${lines.map(({ l, v }) =>
     `<p class="text-white text-[11px] leading-snug break-words [overflow-wrap:anywhere]"><span class="text-slate-400">${l}:</span> ${escapeHtmlAttrText(v)}</p>`
@@ -5158,8 +5347,17 @@ function renderCart(){
       }
     }
 
-    const cartConfigLines = (idStr.startsWith('config-') && configDataForCart)
-      ? buildCartConfigLinesHtml(configDataForCart)
+    const cfgRows = (idStr.startsWith('config-') && configDataForCart) ? getCartConfigLineRows(configDataForCart) : [];
+    const cfgLinesInner = cfgRows.length
+      ? cfgRows.map(({ l, v }) =>
+          `<p class="text-white text-[11px] leading-snug break-words [overflow-wrap:anywhere]"><span class="text-slate-400">${l}:</span> ${escapeHtmlAttrText(v)}</p>`
+        ).join('')
+      : '';
+    const cartConfigBlock = cfgRows.length
+      ? `<div class="cart-config-expand mt-1 w-full min-w-0" data-cart-cfg="${escapeHtmlAttrText(idStr)}">
+          <button type="button" class="js-cart-cfg-toggle text-left text-[11px] text-sky-400/95 hover:text-sky-300 font-medium mt-0.5">Подробнее</button>
+          <div class="cart-config-lines hidden mt-1.5 space-y-0.5 w-full min-w-0">${cfgLinesInner}</div>
+        </div>`
       : '';
 
     el.innerHTML = `
@@ -5168,7 +5366,7 @@ function renderCart(){
       </div>
       <div class="flex-1 min-w-0 pr-0.5">
         <p class="cart-open text-xs text-sky-300 leading-snug font-bold line-clamp-2 break-words [overflow-wrap:anywhere] cursor-pointer hover:text-sky-200 transition-colors">${escapeHtmlAttrText(displayName)}</p>
-        ${cartConfigLines}
+        ${cartConfigBlock}
         <p class="text-slate-400 text-[11px] mt-0.5">Цена/шт</p>
         <div class="text-sm font-bold text-white mt-0.5 tabular-nums whitespace-nowrap">${formatPrice(p.price)}</div>
       </div>
@@ -5529,10 +5727,16 @@ function getResolvedFavoriteItems() {
                          safeLocalStorageGet(`config_${idStr}`, null);
       if(configData){
         const productData = getConfigProductData(idStr, configData);
-        const baseTitle = (configData.baseName || productData.name || '').trim() || productData.name;
+        const c = configData.config;
+        const cpuName = c && c.cpu && c.cpu.name ? String(c.cpu.name) : '';
+        const gpuName = c && c.gpu && c.gpu.name ? String(c.gpu.name) : '';
+        const displayName =
+          getDisplayCpuGpuTitle({ name: '', cpu: cpuName, gpu: gpuName, specs: productData.specs || '' }) ||
+          (productData.specs ? productData.specs.replace(/\s*,\s*/g, ' | ') : '') ||
+          (productData.name || 'Сборка ПК');
         return {
           id: id,
-          name: baseTitle,
+          name: displayName,
           price: productData.price,
           image: productData.image,
           specs: productData.specs
@@ -5760,6 +5964,10 @@ function openTab(tabId){
   const prevActive = qs('.tab[aria-hidden="false"]');
   const willAnimate = !!(target && prevActive && prevActive !== target);
 
+  if (aurumPreviousTabId === 'deposits' && tabId !== 'deposits') {
+    resetTopupAndCertificateInputs();
+  }
+
   // Добавляем в историю только если это не возврат назад
   if(!isNavigatingBack){
     addToHistory(tabId, 'tab');
@@ -5793,6 +6001,11 @@ function openTab(tabId){
     mainContainer.removeEventListener('scroll', favoritesScrollHandler);
     window.removeEventListener('scroll', favoritesScrollHandler);
     favoritesScrollHandler = null;
+  }
+
+  const configuratorBottom = qs('#configurator-bottom-actions');
+  if (configuratorBottom && tabId !== 'configurator') {
+    configuratorBottom.classList.add('hidden');
   }
   
   if(tabId === 'cart'){
@@ -5871,8 +6084,15 @@ function openTab(tabId){
     // Скрываем нижнюю навигацию
     const bottomNav = qs('nav');
     if(bottomNav) bottomNav.classList.add('hidden');
-  } else if(tabId === 'category-4k-products' || tabId === 'category-2k-products' || tabId === 'category-fullhd-products' || tabId === 'configurator'){
-    // На страницах товаров категорий и конфигураторе: скрываем основной header
+  } else if(tabId === 'configurator'){
+    searchHeader.classList.add('hidden');
+    cartHeader.classList.add('hidden');
+    favoritesHeader.classList.add('hidden');
+    const bottomNav = qs('nav');
+    if(bottomNav) bottomNav.classList.add('hidden');
+    if(configuratorBottom) configuratorBottom.classList.remove('hidden');
+  } else if(tabId === 'category-4k-products' || tabId === 'category-2k-products' || tabId === 'category-fullhd-products'){
+    // На страницах товаров категорий: скрываем основной header
     searchHeader.classList.add('hidden');
     cartHeader.classList.add('hidden');
     favoritesHeader.classList.add('hidden');
@@ -5964,6 +6184,8 @@ function openTab(tabId){
   if (mainContainer && target && prevActive && prevActive !== target) {
     mainContainer.scrollTop = 0;
   }
+
+  aurumPreviousTabId = tabId;
 }
 
 // навешиваем события на навигационные кнопки
@@ -6100,6 +6322,7 @@ async function applyAllFilters(categoryId) {
     filterBtn.addEventListener('click', () => {
       currentModalCategory = cat;
       openModal('#filter-modal', () => {
+        applyPriceFilterInputsBounds();
         const state = CATEGORY_STATE[cat];
         if(state){
           qs('#price-from').value = state.price.from || '';
@@ -6138,7 +6361,7 @@ function closeModal(modalId, onClose = null){
   
   setTimeout(() => {
     modal.classList.add('hidden');
-    if(bottomNav) bottomNav.classList.remove('hidden');
+    if (bottomNav && !isConfiguratorViewActive()) bottomNav.classList.remove('hidden');
     if(onClose) onClose();
   }, 300);
 }
@@ -6210,13 +6433,27 @@ qs('#reset-filter').addEventListener('click', () => {
 // Применение фильтров
 qs('#apply-filter').addEventListener('click', () => {
   if(!currentModalCategory) return;
-  const priceFrom = qs('#price-from').value.trim();
-  const priceTo = qs('#price-to').value.trim();
+  const bounds = getGlobalPcPriceBounds();
+  let priceFrom = qs('#price-from').value.trim();
+  let priceTo = qs('#price-to').value.trim();
+
+  const clampBound = (v) => {
+    const n = parseInt(v, 10);
+    if (isNaN(n)) return v;
+    if (bounds.max > 0) {
+      return String(Math.min(bounds.max, Math.max(bounds.min, n)));
+    }
+    return String(Math.max(0, n));
+  };
+  if (priceFrom) priceFrom = clampBound(priceFrom);
+  if (priceTo) priceTo = clampBound(priceTo);
+  qs('#price-from').value = priceFrom;
+  qs('#price-to').value = priceTo;
   
   // Валидация: проверяем, что "от" не больше "до"
   if(priceFrom && priceTo){
-    const from = parseInt(priceFrom);
-    const to = parseInt(priceTo);
+    const from = parseInt(priceFrom, 10);
+    const to = parseInt(priceTo, 10);
     if(!isNaN(from) && !isNaN(to) && from > to){
       alert('Минимальная цена не может быть больше максимальной');
       return;
@@ -6459,6 +6696,7 @@ async function renderCategoryProducts(categoryId){
   const searchInput = qs(`#search-${categoryId}`);
   if(searchInput) searchInput.value = '';
   await applyAllFilters(categoryId);
+  applyPriceFilterInputsBounds();
 }
 
 // Рендеринг конфигуратора ПК (config — снимок из БД config_json или эталон PRODUCT_CONFIGS)
@@ -6572,20 +6810,23 @@ function renderConfigurator(productId, config){
       <h3 class="text-lg font-bold text-amber-400 mb-3">Описание</h3>
       <div class="text-white text-sm whitespace-pre-line leading-relaxed">${config.description}</div>
     </div>
+  `;
 
-    <!-- Кнопки действий -->
-    <div class="flex gap-2 mb-6">
-      <button id="config-add-to-cart" class="flex-[2] bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
+  const stickyHost = qs('#configurator-bottom-actions-inner');
+  if (stickyHost) {
+    stickyHost.innerHTML = `
+    <div class="flex gap-2">
+      <button type="button" id="config-add-to-cart" class="flex-[2] bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
         В корзину ${formatPrice(calculatePrice())}
       </button>
-      <button id="config-go-to-cart" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-semibold transition flex items-center justify-center">
+      <button type="button" id="config-go-to-cart" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-semibold transition flex items-center justify-center">
         <i class="fas fa-shopping-cart"></i>
       </button>
-      <button id="config-add-to-fav" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-semibold transition flex items-center justify-center">
+      <button type="button" id="config-add-to-fav" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-semibold transition flex items-center justify-center">
         <i class="fas fa-heart"></i>
       </button>
-    </div>
-  `;
+    </div>`;
+  }
 
   // Обработчики для радиокнопок
   ['cpu', 'gpu', 'ssd', 'warranty'].forEach(groupName => {
@@ -7043,7 +7284,8 @@ async function loadBonusHistory(){
   emptyEl.innerHTML = aurumLoadingMarkup('Загрузка истории бонусов…', 'Получаем данные с сервера');
 
   try {
-    const entries = await window.API.bonusLedger.getByTelegramId(tid);
+    let entries = await window.API.bonusLedger.getByTelegramId(tid);
+    if (Array.isArray(entries)) entries = entries.slice(0, 20);
     if (!entries || !entries.length) {
       emptyEl.innerHTML = `
         <div class="text-center text-amber-300 text-xl mb-2">История пуста</div>
@@ -7279,8 +7521,8 @@ async function loadUserReviews(){
       if(pendingList) pendingList.style.display = 'none';
       if(pendingEmpty) {
         pendingEmpty.innerHTML = `
-          <div class="text-center text-amber-300 text-xl mb-2">Тут пока пусто</div>
-          <div class="text-center text-amber-300/60 text-sm">Нет заказов для отзыва</div>
+          <div class="text-center text-amber-300 text-xl mb-2">Нет заказов</div>
+          <div class="text-center text-amber-300/60 text-sm">Нет заказов, по которым можно оставить отзыв</div>
         `;
         pendingEmpty.classList.remove('hidden');
         pendingEmpty.style.display = 'flex';
@@ -7401,7 +7643,7 @@ async function loadGlobalPublishedReviews(){
     const frag = document.createDocumentFragment();
     arr.forEach((review) => {
       const reviewCard = document.createElement('div');
-      reviewCard.className = 'rounded-2xl border border-amber-800/40 bg-slate-900/60 p-4 shadow-lg';
+      reviewCard.className = 'card-base rounded-xl p-4 space-y-2';
       const reviewDate = review.created_at ? new Date(review.created_at).toLocaleDateString('ru-RU', {
         year: 'numeric',
         month: 'long',
@@ -7410,24 +7652,24 @@ async function loadGlobalPublishedReviews(){
       const firstName = String(review.first_name || '').trim() || 'Покупатель';
       const items = Array.isArray(review.order_items) ? review.order_items : [];
       const itemsBlock = items.length
-        ? `<ul class="mt-3 space-y-1 border-t border-amber-800/30 pt-3">${items.map((it) => {
+        ? `<div class="mt-2 pt-2 border-t border-amber-800/40 space-y-1">${items.map((it) => {
             const q = Number(it.quantity) > 1 ? ` ×${it.quantity}` : '';
-            return `<li class="text-[12px] text-slate-200/95 leading-snug"><span class="text-slate-500 mr-1">•</span>${escapeHtmlAttrText(it.item_name || 'Позиция')}${q}</li>`;
-          }).join('')}</ul>`
+            return `<p class="text-xs reviews-global-product-line"><span class="font-semibold">Товар:</span> ${escapeHtmlAttrText(it.item_name || 'Позиция')}${q}</p>`;
+          }).join('')}</div>`
         : '';
       const stars = Array.from({ length: 5 }, (_, i) => `
-            <span class="text-base ${i < (review.rating || 0) ? 'text-amber-400' : 'text-slate-600'}">★</span>
+            <span class="text-lg ${i < (review.rating || 0) ? 'text-amber-400' : 'text-slate-600'}">★</span>
           `).join('');
+      const headTitle = review.title ? String(review.title) : 'Отзыв покупателя';
       reviewCard.innerHTML = `
-      <div class="flex justify-between items-start gap-2 mb-1">
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-sky-300">${escapeHtmlAttrText(firstName)}</p>
-          <p class="text-[11px] text-amber-200/50 mt-0.5">${escapeHtmlAttrText(reviewDate)}</p>
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <h4 class="font-bold text-amber-300">${escapeHtmlAttrText(headTitle)}</h4>
+          <p class="text-xs text-amber-300/60">${escapeHtmlAttrText(firstName)}${reviewDate ? ' · ' + escapeHtmlAttrText(reviewDate) : ''}</p>
         </div>
-        <div class="flex gap-0.5 shrink-0">${stars}</div>
+        <div class="flex gap-1">${stars}</div>
       </div>
-      ${review.title ? `<h4 class="text-amber-200 text-sm font-bold leading-snug mt-1">${escapeHtmlAttrText(review.title)}</h4>` : ''}
-      ${review.comment ? `<p class="text-white/95 text-sm mt-2 leading-relaxed whitespace-pre-wrap">${escapeHtmlAttrText(review.comment)}</p>` : ''}
+      ${review.comment ? `<p class="text-white text-sm">${escapeHtmlAttrText(review.comment)}</p>` : ''}
       ${itemsBlock}
     `;
       frag.appendChild(reviewCard);
@@ -7471,6 +7713,10 @@ async function loadPendingReviews(userId){
     if(!orders || orders.length === 0){
       pendingList.innerHTML = '';
       pendingList.style.display = 'none';
+      pendingEmpty.innerHTML = `
+        <div class="text-center text-amber-300 text-xl mb-2">Нет заказов</div>
+        <div class="text-center text-amber-300/60 text-sm">Оформите заказ — здесь появятся заказы без отзыва</div>
+      `;
       pendingEmpty.classList.remove('hidden');
       pendingEmpty.style.display = 'flex';
       return;
@@ -7491,6 +7737,10 @@ async function loadPendingReviews(userId){
     if(ordersWithoutReviews.length === 0){
       pendingList.innerHTML = '';
       pendingList.style.display = 'none';
+      pendingEmpty.innerHTML = `
+        <div class="text-center text-amber-300 text-xl mb-2">Нет заказов</div>
+        <div class="text-center text-amber-300/60 text-sm">Все заказы уже с отзывами или нечего оценивать</div>
+      `;
       pendingEmpty.classList.remove('hidden');
       pendingEmpty.style.display = 'flex';
       return;
@@ -7675,6 +7925,20 @@ async function init(){
   
   // Обработчики модальных окон
   setupModals();
+
+  const cartCfgRoot = qs('#cart-items');
+  if (cartCfgRoot) {
+    cartCfgRoot.addEventListener('click', (e) => {
+      const btn = e.target.closest('.js-cart-cfg-toggle');
+      if (!btn) return;
+      e.preventDefault();
+      const wrap = btn.closest('.cart-config-expand');
+      const lines = wrap && wrap.querySelector('.cart-config-lines');
+      if (!lines) return;
+      const nowHidden = lines.classList.toggle('hidden');
+      btn.textContent = nowHidden ? 'Подробнее' : 'Скрыть';
+    });
+  }
 }
 
 // Функция для отображения инициалов в аватаре
@@ -7878,11 +8142,13 @@ function setupModals(){
     if(closeTopupModal){
       closeTopupModal.addEventListener('click', () => {
         topupModal.classList.add('hidden');
+        resetTopupAndCertificateInputs();
       });
     }
     if(topupClose){
       topupClose.addEventListener('click', () => {
         topupModal.classList.add('hidden');
+        resetTopupAndCertificateInputs();
       });
     }
     if(topupContinue){
@@ -7916,6 +8182,7 @@ function setupModals(){
     topupModal.addEventListener('click', (e) => {
       if(e.target === topupModal){
         topupModal.classList.add('hidden');
+        resetTopupAndCertificateInputs();
       }
     });
   }
@@ -7930,11 +8197,13 @@ function setupModals(){
     if(closeCertificateModal){
       closeCertificateModal.addEventListener('click', () => {
         certificateModal.classList.add('hidden');
+        resetTopupAndCertificateInputs();
       });
     }
     if(certificateClose){
       certificateClose.addEventListener('click', () => {
         certificateModal.classList.add('hidden');
+        resetTopupAndCertificateInputs();
       });
     }
     if(certificateActivate){
@@ -7945,26 +8214,28 @@ function setupModals(){
           alert('Введите код сертификата');
           return;
         }
-        const discountValue = CERTIFICATE_CODE_MAP[normalizedCode];
-        if(!discountValue){
-          alert('Код сертификата не найден или недействителен');
-          return;
-        }
         const activated = getActivatedCertificates();
         if(activated.includes(normalizedCode)){
           alert('Этот сертификат уже был использован и повторно недоступен');
           return;
         }
         const tid = getResolvedTelegramId();
+        let discountValue = null;
         if(tid && window.API && window.API.certificates){
           try {
-            await window.API.certificates.activate({ telegram_id: tid, code: normalizedCode });
+            const res = await window.API.certificates.activate({ telegram_id: tid, code: normalizedCode });
+            discountValue = Number(res && res.discount_percent);
           } catch (err) {
             alert(err && err.message ? err.message : 'Не удалось активировать сертификат на сервере');
             return;
           }
+        } else {
+          discountValue = Number(CERTIFICATE_CODE_MAP[normalizedCode]);
         }
-        const current = getProfileFinance();
+        if(!Number.isFinite(discountValue) || discountValue <= 0){
+          alert('Код сертификата не найден или недействителен');
+          return;
+        }
         updateProfileFinance({
           personalDiscount: discountValue,
           activeCertificateCode: normalizedCode
@@ -7979,6 +8250,7 @@ function setupModals(){
     certificateModal.addEventListener('click', (e) => {
       if(e.target === certificateModal){
         certificateModal.classList.add('hidden');
+        resetTopupAndCertificateInputs();
       }
     });
   }
@@ -8004,7 +8276,7 @@ function setupModals(){
         window.__currentOrderData = null;
         window.__currentOrderPricing = null;
         const bottomNav = qs('nav');
-        if(bottomNav) bottomNav.classList.remove('hidden');
+        if(bottomNav && !isConfiguratorViewActive()) bottomNav.classList.remove('hidden');
       });
     }
     
@@ -8049,11 +8321,17 @@ function setupModals(){
     // Обработчик для поля ФИО доставки
     if(deliveryName){
       deliveryName.addEventListener('input', (e) => {
-        const value = e.target.value;
+        let value = e.target.value;
         // Ограничиваем ввод только допустимыми символами
         const filtered = value.replace(/[^а-яёА-ЯЁa-zA-Z\s\-']/gu, '');
         if(value !== filtered){
           e.target.value = filtered;
+          value = filtered;
+        }
+        const parts = value.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+        if (parts.length > 3) {
+          e.target.value = parts.slice(0, 3).join(' ');
+          value = e.target.value;
         }
         // Валидация при вводе
         if(value.trim()){
@@ -8124,11 +8402,17 @@ function setupModals(){
     // Обработчик для поля ФИО самовывоза
     if(pickupName){
       pickupName.addEventListener('input', (e) => {
-        const value = e.target.value;
+        let value = e.target.value;
         // Ограничиваем ввод только допустимыми символами
         const filtered = value.replace(/[^а-яёА-ЯЁa-zA-Z\s\-']/gu, '');
         if(value !== filtered){
           e.target.value = filtered;
+          value = filtered;
+        }
+        const parts = value.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+        if (parts.length > 3) {
+          e.target.value = parts.slice(0, 3).join(' ');
+          value = e.target.value;
         }
         // Валидация при вводе
         if(value.trim()){

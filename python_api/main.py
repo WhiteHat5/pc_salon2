@@ -640,6 +640,102 @@ def admin_staff_set(request: Request, payload: AdminStaffPayload):
     return {"success": True, "data": row, "message": "Права обновлены"}
 
 
+class PromoCodeCreatePayload(BaseModel):
+    code: str
+    discount_percent: float
+    is_active: bool = True
+    note: Optional[str] = None
+
+
+class PromoCodePatchPayload(BaseModel):
+    discount_percent: Optional[float] = None
+    is_active: Optional[bool] = None
+    note: Optional[str] = None
+
+
+@app.get("/api/admin/promo-codes")
+def admin_promo_codes_list(request: Request):
+    require_admin(request)
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, code, discount_percent, is_active, note, created_at, updated_at
+            FROM promo_codes
+            ORDER BY id ASC
+            """
+        )
+        rows = cur.fetchall()
+    return {"success": True, "promo_codes": rows}
+
+
+@app.post("/api/admin/promo-codes")
+def admin_promo_codes_create(request: Request, payload: PromoCodeCreatePayload):
+    require_admin(request)
+    code = str(payload.code or "").strip().upper()
+    if not code or len(code) > 64:
+        json_error("Некорректный код", 400)
+    pct = float(payload.discount_percent)
+    if pct <= 0 or pct > 100:
+        json_error("Процент скидки от 0.01 до 100", 400)
+    note = (payload.note or "").strip() or None
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO promo_codes (code, discount_percent, is_active, note)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, code, discount_percent, is_active, note, created_at, updated_at
+            """,
+            (code, pct, bool(payload.is_active), note),
+        )
+        row = cur.fetchone()
+        conn.commit()
+    return {"success": True, "data": row}
+
+
+@app.patch("/api/admin/promo-codes/{promo_id}")
+def admin_promo_codes_patch(request: Request, promo_id: int, payload: PromoCodePatchPayload):
+    require_admin(request)
+    fields: list[str] = []
+    values: list[Any] = []
+    if payload.discount_percent is not None:
+        p = float(payload.discount_percent)
+        if p <= 0 or p > 100:
+            json_error("Процент скидки от 0.01 до 100", 400)
+        fields.append("discount_percent = %s")
+        values.append(p)
+    if payload.is_active is not None:
+        fields.append("is_active = %s")
+        values.append(bool(payload.is_active))
+    if payload.note is not None:
+        fields.append("note = %s")
+        values.append((payload.note or "").strip() or None)
+    if not fields:
+        json_error("Нет полей для обновления", 400)
+    fields.append("updated_at = NOW()")
+    values.append(promo_id)
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE promo_codes SET {', '.join(fields)} WHERE id = %s RETURNING id, code, discount_percent, is_active, note, created_at, updated_at",
+            tuple(values),
+        )
+        row = cur.fetchone()
+        if not row:
+            json_error("Промокод не найден", 404)
+        conn.commit()
+    return {"success": True, "data": row}
+
+
+@app.delete("/api/admin/promo-codes/{promo_id}")
+def admin_promo_codes_delete(request: Request, promo_id: int):
+    require_admin(request)
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM promo_codes WHERE id = %s RETURNING id", (promo_id,))
+        if not cur.fetchone():
+            json_error("Промокод не найден", 404)
+        conn.commit()
+    return {"success": True}
+
+
 CERTIFICATE_CODE_MAP: dict[str, float] = {
     "AURUM5": 5,
     "AURUM7": 7,
@@ -647,6 +743,25 @@ CERTIFICATE_CODE_MAP: dict[str, float] = {
     "PREMIUM12": 12,
     "VIP15": 15,
 }
+
+MAX_DEPOSIT_HISTORY_ENTRIES = 20
+MAX_BONUS_LEDGER_ENTRIES = 20
+
+
+def _certificate_discount_percent(cur: Any, code: str) -> Optional[float]:
+    """Активный промокод в БД (таблица promo_codes), иначе встроенный CERTIFICATE_CODE_MAP."""
+    c = str(code or "").strip().upper()
+    if not c:
+        return None
+    cur.execute(
+        "SELECT discount_percent FROM promo_codes WHERE code = %s AND is_active = TRUE",
+        (c,),
+    )
+    row = cur.fetchone()
+    if row is not None:
+        return float(row["discount_percent"])
+    v = CERTIFICATE_CODE_MAP.get(c)
+    return float(v) if v is not None else None
 
 
 def normalize_phone_digits(phone: Optional[str]) -> str:
@@ -1332,7 +1447,7 @@ def _normalize_deposit_history_entries(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
     out: list[dict[str, Any]] = []
-    for e in value[:120]:
+    for e in value[:80]:
         if not isinstance(e, dict):
             continue
         eid = str(e.get("id") or "").strip()
@@ -1362,7 +1477,7 @@ def _normalize_deposit_history_entries(value: Any) -> list[dict[str, Any]]:
                 "created_at": created_at,
             }
         )
-    return out[:100]
+    return out[:MAX_DEPOSIT_HISTORY_ENTRIES]
 
 
 def _merge_deposit_history_lists(a: list[dict[str, Any]], b: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1375,7 +1490,15 @@ def _merge_deposit_history_lists(a: list[dict[str, Any]], b: list[dict[str, Any]
             by_id[eid] = e
     merged = list(by_id.values())
     merged.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
-    return merged[:100]
+    return merged[:MAX_DEPOSIT_HISTORY_ENTRIES]
+
+
+def _deposit_history_revision_int(value: Any) -> int:
+    try:
+        r = int(value)
+        return max(0, r)
+    except (TypeError, ValueError):
+        return 0
 
 
 def _normalize_profile_finance(value: Any) -> dict[str, Any]:
@@ -1398,12 +1521,14 @@ def _normalize_profile_finance(value: Any) -> dict[str, Any]:
     active_code = src.get("activeCertificateCode")
     active_code_norm = None if active_code is None else str(active_code).strip().upper() or None
     deposits = _normalize_deposit_history_entries(src.get("deposit_history"))
+    dep_rev = _deposit_history_revision_int(src.get("deposit_history_revision"))
     return {
         "balance": max(0.0, balance),
         "bonuses": max(0.0, bonuses),
         "personalDiscount": max(0.0, personal_discount),
         "activeCertificateCode": active_code_norm,
         "deposit_history": deposits,
+        "deposit_history_revision": dep_rev,
     }
 
 
@@ -1464,6 +1589,7 @@ def user_state_post(payload: dict[str, Any] = Body(...)):
     incoming_pf_dict = incoming_pf if isinstance(incoming_pf, dict) else {}
     core = _normalize_profile_finance_core(incoming_pf_dict)
     incoming_dep = _normalize_deposit_history_entries(incoming_pf_dict.get("deposit_history"))
+    incoming_dep_rev = _deposit_history_revision_int(incoming_pf_dict.get("deposit_history_revision"))
 
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
@@ -1475,8 +1601,13 @@ def user_state_post(payload: dict[str, Any] = Body(...)):
         prev_row = cur.fetchone()
         existing_raw = prev_row.get("profile_finance") if prev_row else None
         existing_pf = existing_raw if isinstance(existing_raw, dict) else {}
-        existing_dep = _normalize_deposit_history_entries(existing_pf.get("deposit_history"))
-        merged_dep = _merge_deposit_history_lists(existing_dep, incoming_dep)
+        existing_full = _normalize_profile_finance(existing_pf)
+        server_dep_rev = int(existing_full["deposit_history_revision"])
+        existing_dep = list(existing_full["deposit_history"])
+        if incoming_dep_rev < server_dep_rev:
+            merged_dep = existing_dep
+        else:
+            merged_dep = _merge_deposit_history_lists(existing_dep, incoming_dep)
         prev_bal = float(_normalize_profile_finance(existing_pf)["balance"])
         new_bal = float(core["balance"])
         if new_bal > prev_bal + MAX_SINGLE_BALANCE_INCREASE_RUB + 1e-6:
@@ -1491,7 +1622,7 @@ def user_state_post(payload: dict[str, Any] = Body(...)):
                 f"Баланс не может превышать {int(MAX_USER_BALANCE_RUB):,} ₽".replace(",", " "),
                 400,
             )
-        profile_finance = {**core, "deposit_history": merged_dep}
+        profile_finance = {**core, "deposit_history": merged_dep, "deposit_history_revision": server_dep_rev}
 
         if "cart_configs" in payload:
             cart_configs = _normalize_cart_configs(payload.get("cart_configs"))
@@ -1568,10 +1699,10 @@ def certificates_activate(payload: dict[str, Any] = Body(...)):
         tid = int(raw_tid)
     except (TypeError, ValueError):
         json_error("Некорректный telegram_id", 400)
-    pct = CERTIFICATE_CODE_MAP.get(code)
-    if pct is None:
-        json_error("Код сертификата не найден или недействителен", 400)
     with db_conn() as conn, conn.cursor() as cur:
+        pct = _certificate_discount_percent(cur, code)
+        if pct is None:
+            json_error("Код сертификата не найден или недействителен", 400)
         cur.execute(
             "SELECT 1 FROM certificate_redemptions WHERE telegram_id = %s AND code = %s",
             (tid, code),
@@ -1607,9 +1738,9 @@ def bonus_ledger_get(telegram_id: int = Query(...)):
             FROM bonus_ledger
             WHERE telegram_id = %s
             ORDER BY created_at DESC, id DESC
-            LIMIT 200
+            LIMIT %s
             """,
-            (telegram_id,),
+            (telegram_id, MAX_BONUS_LEDGER_ENTRIES),
         )
         rows = cur.fetchall()
     return json_success(rows, "entries")
@@ -1800,9 +1931,6 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
     if delivery_type == "delivery" and not (address and str(address).strip()):
         json_error("Адрес доставки обязателен для заказа с доставкой", 400)
 
-    if tid is not None and cert_code and discount_amount > 0 and cert_code not in CERTIFICATE_CODE_MAP:
-        json_error("Некорректный код сертификата", 400)
-
     telegram_username = _normalize_telegram_username(payload.get("telegram_username"))
 
     payment_method_ui = str(payload.get("payment_method_ui") or "").strip().lower()
@@ -1825,6 +1953,8 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
 
     with db_conn() as conn, conn.cursor() as cur:
         if tid is not None and cert_code and discount_amount > 0:
+            if _certificate_discount_percent(cur, cert_code) is None:
+                json_error("Некорректный код сертификата", 400)
             cur.execute(
                 "SELECT 1 FROM certificate_redemptions WHERE telegram_id = %s AND code = %s",
                 (tid, cert_code),

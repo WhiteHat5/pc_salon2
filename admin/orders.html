@@ -160,6 +160,9 @@
                 <a href="reviews.html" class="admin-btn-ice">
                     <i class="fas fa-star"></i>Отзывы
                 </a>
+                <a href="promocodes.html" class="admin-btn-ice">
+                    <i class="fas fa-ticket-alt"></i>Промокоды
+                </a>
                 <button type="button" id="admin-logout" class="admin-btn-danger">
                     <i class="fas fa-sign-out-alt"></i>Выход
                 </button>
@@ -415,6 +418,7 @@
 
         // Загрузка заказов
         async function loadOrders(statusFilter = '') {
+            document.getElementById('orders-list').innerHTML = '<p class="text-[#b8c4d4] text-center py-6">Загрузка…</p>';
             try {
                 let url = `${API_BASE_URL}/orders?admin=1`;
                 if (statusFilter) {
