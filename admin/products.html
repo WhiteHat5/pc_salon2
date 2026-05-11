@@ -154,6 +154,9 @@
                 <p class="text-sm text-[#b8c4d4]">Каталог и карточки (как во витрине)</p>
             </div>
             <div class="flex flex-wrap gap-3">
+                <a href="#moderation-panel" id="moderation-nav-link" class="admin-btn-ice hidden" title="Карточки менеджеров на одобрение">
+                    <i class="fas fa-user-check"></i>Модерация
+                </a>
                 <a href="orders.html" class="admin-btn-ice">
                     <i class="fas fa-shopping-cart"></i>Заказы
                 </a>
@@ -169,14 +172,26 @@
             </div>
         </div>
 
+        <div id="moderation-panel" class="admin-panel rounded-xl p-6 mb-6 hidden">
+            <h2 class="text-xl font-bold text-[#8ec8ff] mb-2">
+                <i class="fas fa-user-check mr-2"></i>Модерация карточек
+            </h2>
+            <p class="text-sm text-[#b8c4d4] mb-4">
+                Карточки, созданные менеджерами, скрыты во витрине до одобрения. Уведомление в Telegram уходит только на ID из переменной окружения сервера <code class="text-amber-200/90">OWNER_TELEGRAM_IDS</code> (главный администратор).
+            </p>
+            <div id="moderation-queue" class="space-y-3"></div>
+            <p id="moderation-empty" class="text-[#8b97ab] text-sm mt-3 hidden">Сейчас нет карточек на модерации.</p>
+        </div>
+
         <div id="admin-staff-panel" class="admin-panel rounded-xl p-6 mb-6 hidden">
             <h2 class="text-xl font-bold text-[#8ec8ff] mb-2">
                 <i class="fas fa-user-shield mr-2"></i>Доступ менеджеров
             </h2>
             <p class="text-sm text-[#b8c4d4] mb-4">
                 Назначьте флаг <span class="text-amber-200/90">is_staff</span> по Telegram ID — в профиле мини-приложения появится пункт «Панель управления».
-                Вход менеджера в веб-админку — паролем окружения <code class="text-amber-200/90">MANAGER_ADMIN_PASSWORD</code>.
-                Панель выдачи доступа видна только при входе паролем владельца (<code class="text-amber-200/90">ADMIN_PASSWORD</code>).
+                Пароль для входа менеджеров в эту веб-админку задаётся отдельно в настройках сервера (файл окружения на хостинге), не в интерфейсе.
+                Эта панель назначения прав отображается только после входа основным паролем владельца из тех же настроек сервера.
+                Снять доступ менеджера с закреплённых аккаунтов владельца нельзя — список задаётся при настройке сервера.
             </p>
             <div id="admin-staff-list" class="space-y-2 mb-4 text-sm"></div>
             <form id="admin-staff-form" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
@@ -208,32 +223,42 @@
                             <option value="fullhd">Full HD Gaming</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-sm font-medium mb-2">Название товара <span class="text-red-400">*</span></label>
-                        <input type="text" id="product-name" required class="w-full p-3 rounded-xl" placeholder="AURUM 4K Pro">
+                        <p class="text-xs text-[#8b97ab] mb-2">Префикс AURUM фиксирован; разрешение и приставка (до 15 символов) задаются ниже.</p>
+                        <div class="flex flex-col sm:flex-row gap-2 items-stretch min-w-0">
+                            <span class="inline-flex items-center justify-center px-3 py-3 rounded-xl bg-[rgba(14,20,32,0.62)] border border-[rgba(142,200,255,0.22)] text-[#8ec8ff] font-semibold shrink-0" aria-hidden="true">AURUM</span>
+                            <select id="product-name-tier" required class="w-full sm:w-40 shrink-0 p-3 rounded-xl" title="Разрешение в названии">
+                                <option value="4k">4K</option>
+                                <option value="2k">2K</option>
+                                <option value="fullhd">Full HD</option>
+                            </select>
+                            <input type="text" id="product-name-suffix" maxlength="15" class="flex-1 min-w-0 p-3 rounded-xl" placeholder="приставка, напр. Pro" title="До 15 символов" autocomplete="off">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium mb-2">Цена (₽) <span class="text-red-400">*</span></label>
-                        <input type="number" id="product-price" required min="0" step="1" class="w-full p-3 rounded-xl" placeholder="349990">
+                        <input type="number" id="product-price" required min="0" max="2000000" maxlength="7" step="1" class="w-full p-3 rounded-xl" placeholder="349990" title="До 7 цифр, не более 2 000 000 ₽" inputmode="numeric">
+                        <p class="text-xs text-[#8b97ab] mt-1">Не более 2&nbsp;000&nbsp;000&nbsp;₽, до 7 цифр в поле.</p>
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-medium mb-2">Изображение (путь) <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium mb-2">Изображение <span class="text-red-400">*</span></label>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <input type="text" id="product-image" required class="flex-1 p-3 rounded-xl" placeholder="photo/pc4_1.jpg">
-                            <input type="file" id="product-image-file" class="hidden" accept="image/*">
+                            <input type="text" id="product-image" maxlength="255" class="flex-1 p-3 rounded-xl" placeholder="photo/pc4_1.jpg или загрузите файл">
+                            <input type="file" id="product-image-file" class="hidden" accept="image/jpeg,image/png,image/webp,image/gif">
                             <button type="button" id="product-image-pick" class="admin-btn-ice whitespace-nowrap px-4 py-3 rounded-xl shrink-0">
-                                <i class="fas fa-folder-open mr-2"></i>Выбрать файл
+                                <i class="fas fa-upload mr-2"></i>Загрузить в БД
                             </button>
                         </div>
-                        <p class="text-xs text-[#8b97ab] mt-1">Файл должен лежать в папке <code class="text-amber-200/90">photo/</code> на сервере; в поле подставится путь <code class="text-amber-200/90">photo/имя_файла</code>.</p>
+                        <p class="text-xs text-[#8b97ab] mt-1">Рекомендуется загрузка с телефона — файл сохраняется в PostgreSQL. Либо укажите путь к файлу в <code class="text-amber-200/90">photo/</code> на сервере.</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium mb-2">Процессор</label>
-                        <input type="text" id="product-cpu" class="w-full p-3 rounded-xl" placeholder="i9-13900K">
+                        <label class="block text-sm font-medium mb-2">Процессор (базовый)</label>
+                        <select id="product-cpu" class="w-full p-3 rounded-xl"><option value="">— Выберите —</option></select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium mb-2">Видеокарта</label>
-                        <input type="text" id="product-gpu" class="w-full p-3 rounded-xl" placeholder="RTX4090">
+                        <label class="block text-sm font-medium mb-2">Видеокарта (базовая)</label>
+                        <select id="product-gpu" class="w-full p-3 rounded-xl"><option value="">— Выберите —</option></select>
                     </div>
                 </div>
                 <div>
@@ -260,15 +285,17 @@
                                 Заполнить из шаблона категории
                             </button>
                         </div>
-                        <p class="text-xs text-[#8b97ab]">Каждая строка — один вариант. Цена: <code class="text-amber-200/80">Название | +5000</code> или <code class="text-amber-200/80">Название | -2000</code>. Первая строка в блоке — базовая (входит в цену).</p>
+                        <p class="text-xs text-[#8b97ab]">Процессоры и видеокарты — только из списка. Первая строка — базовая (доплата 0 ₽). SSD и гарантия — как раньше, текстом.</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Процессоры (варианты)</label>
-                                <textarea id="opt-cpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono" placeholder="Intel Core i5-13400F&#10;AMD Ryzen 5 7600 | +8000"></textarea>
+                                <div id="opt-cpu-rows" class="space-y-2"></div>
+                                <button type="button" id="opt-cpu-add" class="admin-btn-muted text-xs py-2 px-3 rounded-lg mt-2">+ вариант CPU</button>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Видеокарты (варианты)</label>
-                                <textarea id="opt-gpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono" placeholder="NVIDIA RTX 4060 8GB&#10;NVIDIA RTX 4070 SUPER 12GB | +30000"></textarea>
+                                <div id="opt-gpu-rows" class="space-y-2"></div>
+                                <button type="button" id="opt-gpu-add" class="admin-btn-muted text-xs py-2 px-3 rounded-lg mt-2">+ вариант GPU</button>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">SSD / накопители</label>
@@ -287,7 +314,7 @@
                         <span class="text-[#b8c4d4]">Товар активен</span>
                     </label>
                 </div>
-                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 py-3 px-8 rounded-xl font-bold transition shadow-lg shadow-amber-900/25">
+                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 py-3 px-8 rounded-xl font-bold transition transform hover:scale-[1.02] active:scale-100">
                     <i class="fas fa-save mr-2"></i>Добавить товар
                 </button>
             </form>
@@ -300,9 +327,14 @@
                     <h2 class="text-xl font-bold text-[#8ec8ff]">
                         <i class="fas fa-list mr-2"></i>Список товаров
                     </h2>
-                    <button type="button" id="refresh-products" class="admin-btn-muted">
-                        <i class="fas fa-sync-alt"></i>Обновить
-                    </button>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" id="export-products-xlsx" class="admin-btn-ice" title="Сохранить отфильтрованный список в Excel (.xlsx)">
+                            <i class="fas fa-file-excel"></i>В Excel (.xlsx)
+                        </button>
+                        <button type="button" id="refresh-products" class="admin-btn-muted">
+                            <i class="fas fa-sync-alt"></i>Обновить
+                        </button>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -355,31 +387,41 @@
                                 <option value="fullhd">Full HD Gaming</option>
                             </select>
                         </div>
-                        <div>
+                        <div class="md:col-span-2">
                             <label class="block text-sm font-medium mb-2">Название товара <span class="text-red-400">*</span></label>
-                            <input type="text" id="edit-product-name" required class="w-full p-3 rounded-xl">
+                            <p class="text-xs text-[#8b97ab] mb-2">Префикс AURUM; разрешение и приставка (до 15 символов).</p>
+                            <div class="flex flex-col sm:flex-row gap-2 items-stretch min-w-0">
+                                <span class="inline-flex items-center justify-center px-3 py-3 rounded-xl bg-[rgba(14,20,32,0.62)] border border-[rgba(142,200,255,0.22)] text-[#8ec8ff] font-semibold shrink-0" aria-hidden="true">AURUM</span>
+                                <select id="edit-product-name-tier" required class="w-full sm:w-40 shrink-0 p-3 rounded-xl" title="Разрешение в названии">
+                                    <option value="4k">4K</option>
+                                    <option value="2k">2K</option>
+                                    <option value="fullhd">Full HD</option>
+                                </select>
+                                <input type="text" id="edit-product-name-suffix" maxlength="15" class="flex-1 min-w-0 p-3 rounded-xl" placeholder="приставка" title="До 15 символов" autocomplete="off">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-2">Цена (₽) <span class="text-red-400">*</span></label>
-                            <input type="number" id="edit-product-price" required min="0" step="1" class="w-full p-3 rounded-xl">
+                            <input type="number" id="edit-product-price" required min="0" max="2000000" maxlength="7" step="1" class="w-full p-3 rounded-xl" title="До 7 цифр, не более 2 000 000 ₽" inputmode="numeric">
+                            <p class="text-xs text-[#8b97ab] mt-1">Не более 2&nbsp;000&nbsp;000&nbsp;₽, до 7 цифр.</p>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium mb-2">Изображение (путь) <span class="text-red-400">*</span></label>
+                            <label class="block text-sm font-medium mb-2">Изображение <span class="text-red-400">*</span></label>
                             <div class="flex flex-col sm:flex-row gap-2">
-                                <input type="text" id="edit-product-image" required class="flex-1 p-3 rounded-xl">
-                                <input type="file" id="edit-product-image-file" class="hidden" accept="image/*">
+                                <input type="text" id="edit-product-image" maxlength="255" class="flex-1 p-3 rounded-xl" placeholder="путь photo/… или загрузка">
+                                <input type="file" id="edit-product-image-file" class="hidden" accept="image/jpeg,image/png,image/webp,image/gif">
                                 <button type="button" id="edit-product-image-pick" class="admin-btn-ice whitespace-nowrap px-4 py-3 rounded-xl shrink-0">
-                                    <i class="fas fa-folder-open mr-2"></i>Выбрать файл
+                                    <i class="fas fa-upload mr-2"></i>В БД
                                 </button>
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-2">Процессор</label>
-                            <input type="text" id="edit-product-cpu" class="w-full p-3 rounded-xl">
+                            <select id="edit-product-cpu" class="w-full p-3 rounded-xl"><option value="">— Выберите —</option></select>
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-2">Видеокарта</label>
-                            <input type="text" id="edit-product-gpu" class="w-full p-3 rounded-xl">
+                            <select id="edit-product-gpu" class="w-full p-3 rounded-xl"><option value="">— Выберите —</option></select>
                         </div>
                     </div>
                     <div>
@@ -401,11 +443,13 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Процессоры</label>
-                                <textarea id="edit-opt-cpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono"></textarea>
+                                <div id="edit-opt-cpu-rows" class="space-y-2"></div>
+                                <button type="button" id="edit-opt-cpu-add" class="admin-btn-muted text-xs py-2 px-3 rounded-lg mt-2">+ вариант CPU</button>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">Видеокарты</label>
-                                <textarea id="edit-opt-gpu-lines" rows="5" class="w-full p-2 rounded-lg text-sm font-mono"></textarea>
+                                <div id="edit-opt-gpu-rows" class="space-y-2"></div>
+                                <button type="button" id="edit-opt-gpu-add" class="admin-btn-muted text-xs py-2 px-3 rounded-lg mt-2">+ вариант GPU</button>
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1 text-[#b8c4d4]">SSD</label>
@@ -424,7 +468,7 @@
                         </label>
                     </div>
                     <div class="flex gap-3">
-                        <button type="submit" class="flex-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900 py-3 px-8 rounded-xl font-bold transition shadow-lg shadow-amber-900/25">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 py-3 px-8 rounded-xl font-bold transition">
                             <i class="fas fa-save mr-2"></i>Сохранить изменения
                         </button>
                         <button type="button" onclick="window.closeEditModal()" class="admin-btn-muted py-3 px-8 rounded-xl font-bold">
@@ -443,6 +487,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="product-presets-data.js"></script>
     <script>
         // Определяем путь к API (python-first)
@@ -500,6 +545,14 @@
             try { sessionStorage.setItem('aurum_return_from_admin', '1'); } catch (e) {}
             window.location.href = resolveMiniAppEntryUrl();
         }
+        function aurumAdminTelegramBackStepProducts() {
+            const em = document.getElementById('edit-modal');
+            if (em && !em.classList.contains('hidden')) {
+                if (window.closeEditModal) window.closeEditModal();
+                return;
+            }
+            aurumGoBackToMiniApp();
+        }
         function aurumSetupAdminTelegramBack() {
             document.querySelectorAll('.admin-fallback-shop').forEach(el => {
                 el.addEventListener('click', (e) => { e.preventDefault(); aurumGoBackToMiniApp(); });
@@ -516,7 +569,10 @@
             try { if (tg.setHeaderColor) tg.setHeaderColor(hdr); } catch (e) {}
             try { if (tg.setBackgroundColor) tg.setBackgroundColor(bg); } catch (e) {}
             tg.BackButton.show();
-            tg.BackButton.onClick(aurumGoBackToMiniApp);
+            try {
+                if (typeof tg.BackButton.offClick === 'function') tg.BackButton.offClick();
+            } catch (e) {}
+            tg.BackButton.onClick(aurumAdminTelegramBackStepProducts);
         }
         async function adminSessionOk() {
             const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
@@ -578,9 +634,13 @@
             sessionStorage.removeItem(ADMIN_TOKEN_KEY);
             location.reload();
         }
-        function mediaUrl(rel) {
+        function mediaUrl(rel, productId) {
             if (!rel) return '/photo/4K.png';
             const s = String(rel).trim();
+            if (s === '__inline__' && productId != null) {
+                const b = API_BASE_URL.replace(/\/+$/, '');
+                return b + '/products/image/' + encodeURIComponent(String(productId));
+            }
             if (s.startsWith('http') || s.startsWith('/')) return s;
             return '/' + s.replace(/^\.?\//, '');
         }
@@ -593,6 +653,10 @@
                 if (await adminSessionOk()) {
                     loginEl.classList.add('hidden');
                     appEl.classList.remove('hidden');
+                    await adminLoadComponentOptions();
+                    adminPopulateCpuGpuSelects();
+                    adminWireOptionRowButtons();
+                    adminPresetToTextareas(document.getElementById('product-category').value || '4k', '');
                     try {
                         const raw = sessionStorage.getItem('aurum_admin_products_list_prefs_v1');
                         if (raw) {
@@ -603,8 +667,19 @@
                             if (prefs && prefs.sort && fs && Array.from(fs.options).some((o) => o.value === prefs.sort)) fs.value = prefs.sort;
                         }
                     } catch (e) {}
-                    loadProducts();
                     const admRole = await aurumLoadAdminRole();
+                    await loadProducts();
+                    try {
+                        const sp = new URLSearchParams(location.search);
+                        const fid = sp.get('focus');
+                        if (fid && window.editProduct) {
+                            setTimeout(() => {
+                                try {
+                                    window.editProduct(Number(fid));
+                                } catch (e2) {}
+                            }, 450);
+                        }
+                    } catch (e) {}
                     if (admRole === 'super') {
                         const sp = document.getElementById('admin-staff-panel');
                         if (sp) {
@@ -699,16 +774,45 @@
             });
             if (lo) lo.addEventListener('click', () => { sessionStorage.removeItem(ADMIN_TOKEN_KEY); location.reload(); });
 
-            wireAdminImagePicker('product-image-file', 'product-image', 'product-image-pick');
-            wireAdminImagePicker('edit-product-image-file', 'edit-product-image', 'edit-product-image-pick');
+            wireAdminImagePicker('product-image-file', 'product-image', 'product-image-pick', 'add');
+            wireAdminImagePicker('edit-product-image-file', 'edit-product-image', 'edit-product-image-pick', 'edit');
+            adminWirePriceFields();
 
             const editModal = document.getElementById('edit-modal');
             if (editModal) {
-                editModal.addEventListener('click', () => { if (window.closeEditModal) window.closeEditModal(); });
                 const editPanel = document.getElementById('edit-modal-scroll');
                 if (editPanel) editPanel.addEventListener('click', (ev) => ev.stopPropagation());
             }
 
+            const catSel = document.getElementById('product-category');
+            const addTierSel = document.getElementById('product-name-tier');
+            if (catSel && addTierSel) {
+                catSel.addEventListener('change', () => {
+                    const v = catSel.value;
+                    if (v && ['4k', '2k', 'fullhd'].includes(v)) addTierSel.value = v;
+                    adminPresetToTextareas(v || '4k', '');
+                });
+                addTierSel.addEventListener('change', () => {
+                    const v = addTierSel.value;
+                    if (v && catSel && ['4k', '2k', 'fullhd'].includes(v)) catSel.value = v;
+                });
+            } else if (catSel) {
+                catSel.addEventListener('change', () => {
+                    adminPresetToTextareas(catSel.value || '4k', '');
+                });
+            }
+            const editCatSel = document.getElementById('edit-product-category');
+            const editTierSel = document.getElementById('edit-product-name-tier');
+            if (editCatSel && editTierSel) {
+                editCatSel.addEventListener('change', () => {
+                    const v = editCatSel.value;
+                    if (v && ['4k', '2k', 'fullhd'].includes(v)) editTierSel.value = v;
+                });
+                editTierSel.addEventListener('change', () => {
+                    const v = editTierSel.value;
+                    if (v && editCatSel && ['4k', '2k', 'fullhd'].includes(v)) editCatSel.value = v;
+                });
+            }
             const descTpl = document.getElementById('product-description-template');
             if (descTpl) {
                 descTpl.addEventListener('change', () => {
@@ -746,9 +850,72 @@
 
         // Глобальные переменные
         let currentProducts = [];
+        let adminComponentOptions = { cpus: [], gpus: [] };
+        let aurumPendingProductImage = null;
+        let aurumPendingEditImage = null;
         const ADMIN_PRODUCTS_LIST_PREFS_KEY = 'aurum_admin_products_list_prefs_v1';
         const ADMIN_CATEGORY_ORDER = ['4k', '2k', 'fullhd'];
         const ADMIN_CATEGORY_LABELS = { '4k': '4K Gaming', '2k': '2K Gaming', 'fullhd': 'Full HD Gaming' };
+        const ADMIN_NAME_TIER_LABELS = { '4k': '4K', '2k': '2K', 'fullhd': 'Full HD' };
+
+        function adminComposeProductDisplayName(tierKey, suffixRaw) {
+            const tk = String(tierKey || '4k').toLowerCase();
+            const label = ADMIN_NAME_TIER_LABELS[tk] || '4K';
+            const suf = String(suffixRaw == null ? '' : suffixRaw).trim();
+            return ('AURUM ' + label + (suf ? ' ' + suf : '')).trim();
+        }
+
+        function adminParseProductNameParts(fullName) {
+            const s0 = String(fullName || '').trim();
+            let tier = '4k';
+            let suffix = '';
+            const m = /^AURUM\s+(4K|2K|Full\s*HD)(?:\s+(.+))?$/i.exec(s0);
+            if (m) {
+                const t = m[1].replace(/\s+/g, ' ').trim();
+                if (/^4k$/i.test(t)) tier = '4k';
+                else if (/^2k$/i.test(t)) tier = '2k';
+                else tier = 'fullhd';
+                suffix = (m[2] || '').trim().slice(0, 15);
+            } else {
+                const low = s0.toLowerCase();
+                if (/\bfull\s*hd\b|\bfhd\b/i.test(s0)) tier = 'fullhd';
+                else if (/\b2k\b/.test(low)) tier = '2k';
+                else if (/\b4k\b/.test(low)) tier = '4k';
+                const rest = s0.replace(/^AURUM\s+/i, '').replace(/^(4K|2K|Full\s*HD|FHD)\s*/i, '').trim();
+                suffix = rest.slice(0, 15);
+            }
+            return { tier, suffix };
+        }
+
+        const ADMIN_PRODUCT_PRICE_MAX = 2000000;
+        const ADMIN_PRODUCT_PRICE_MAX_DIGITS = 7;
+
+        function adminClampProductPrice(n) {
+            let x = Math.round(Number(n) || 0);
+            if (x < 0) x = 0;
+            if (x > ADMIN_PRODUCT_PRICE_MAX) x = ADMIN_PRODUCT_PRICE_MAX;
+            return x;
+        }
+
+        function adminNormalizePriceInput(el) {
+            if (!el) return;
+            const raw = String(el.value || '').replace(/\D/g, '').slice(0, ADMIN_PRODUCT_PRICE_MAX_DIGITS);
+            if (raw === '') {
+                el.value = '';
+                return;
+            }
+            let x = parseInt(raw, 10);
+            if (x > ADMIN_PRODUCT_PRICE_MAX) x = ADMIN_PRODUCT_PRICE_MAX;
+            el.value = String(x);
+        }
+
+        function adminWirePriceFields() {
+            ['product-price', 'edit-product-price'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', () => adminNormalizePriceInput(el));
+            });
+        }
 
         function adminEscapeHtml(s) {
             return String(s == null ? '' : s)
@@ -756,6 +923,9 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
+        }
+        function adminEscapeHtmlAttr(s) {
+            return adminEscapeHtml(s).replace(/'/g, '&#39;');
         }
 
         function adminCategoryKey(product) {
@@ -789,20 +959,332 @@
             return copy;
         }
 
+        function adminGetFilteredProductsList() {
+            const fc = document.getElementById('admin-products-filter-cat');
+            const fs = document.getElementById('admin-products-sort');
+            const catFilter = fc && fc.value ? fc.value : 'all';
+            const sortKey = fs && fs.value ? fs.value : 'id_asc';
+            if (!currentProducts.length) return { list: [], catFilter, sortKey };
+            let list = currentProducts.slice();
+            if (catFilter !== 'all') {
+                list = list.filter((p) => adminCategoryKey(p) === catFilter);
+            }
+            list = adminSortProducts(list, sortKey);
+            return { list, catFilter, sortKey };
+        }
+
+        function aurumUint8ToBase64(u8) {
+            const CHUNK = 0x8000;
+            let binary = '';
+            for (let i = 0; i < u8.length; i += CHUNK) {
+                binary += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + CHUNK, u8.length)));
+            }
+            return btoa(binary);
+        }
+
+        async function aurumTryTelegramNativeDownload(blob, filename) {
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (!tg) return false;
+            let b64;
+            try {
+                b64 = aurumUint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
+            } catch (e) {
+                return false;
+            }
+            let reg;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/export-register`, {
+                    method: 'POST',
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                    body: JSON.stringify({ content_base64: b64, filename: filename }),
+                });
+                reg = await r.json().catch(() => ({}));
+                if (!r.ok || !reg.success || !reg.url) return false;
+            } catch (e) {
+                return false;
+            }
+            const url = String(reg.url);
+            const fn = String(reg.filename || filename);
+            if (typeof tg.downloadFile === 'function' && (url.startsWith('https://') || url.startsWith('http://'))) {
+                const ok = await new Promise((resolve) => {
+                    try {
+                        tg.downloadFile({ url: url, file_name: fn }, (s) => resolve(!!s));
+                    } catch (e2) {
+                        resolve(false);
+                    }
+                });
+                if (ok) return true;
+            }
+            if (typeof tg.openLink === 'function' && url.startsWith('http')) {
+                try {
+                    tg.openLink(url);
+                    return true;
+                } catch (e3) {}
+            }
+            return false;
+        }
+
+        /** Excel .xlsx: в Telegram — нативная загрузка по HTTPS; иначе Share / Save-as / ссылка (без ложного «успеха» в TG Android). */
+        async function aurumAdminDownloadXlsx(filename, sheetName, headers, rows) {
+            try {
+                if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.write) {
+                    return { ok: false, lib: true };
+                }
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+                const sn = String(sheetName || 'Лист1').replace(/[:\\/?*[\]]/g, '').slice(0, 31) || 'Export';
+                XLSX.utils.book_append_sheet(wb, ws, sn);
+                const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                let name = String(filename || 'export').replace(/\.(csv|xlsx)$/i, '') + '.xlsx';
+
+                const ua = navigator.userAgent || '';
+                const isIOS = /iPhone|iPad|iPod/i.test(ua);
+                const isAndroid = /Android/i.test(ua);
+                const inTg = typeof window.Telegram !== 'undefined' && window.Telegram && window.Telegram.WebApp;
+                /* Нативный downloadFile только Android в TG: там blob не пишется; iOS/ПК — прежняя цепочка Share/ссылка. */
+                const useTgNativeFileDownload = !!(inTg && isAndroid);
+                if (useTgNativeFileDownload && (await aurumTryTelegramNativeDownload(blob, name))) {
+                    return { ok: true, via: 'telegram' };
+                }
+
+                async function tryShareOnce() {
+                    if (!navigator.share || !navigator.canShare) return false;
+                    try {
+                        const file = new File([blob], name, { type: blob.type });
+                        if (!navigator.canShare({ files: [file] })) return false;
+                        await navigator.share({ files: [file], title: name, text: 'Таблица AURUM' });
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                async function trySavePicker() {
+                    if (typeof window.showSaveFilePicker !== 'function') return false;
+                    if (isAndroid && inTg) return false;
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: name,
+                            types: [{
+                                description: 'Excel (.xlsx)',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+                            }],
+                        });
+                        const w = await handle.createWritable();
+                        await w.write(blob);
+                        await w.close();
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                function tryAnchorDownload() {
+                    if (isIOS) return false;
+                    if (inTg && isAndroid) return false;
+                    try {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name;
+                        a.rel = 'noopener';
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                        if (typeof a.click === 'function') a.click();
+                        setTimeout(() => {
+                            URL.revokeObjectURL(url);
+                            a.remove();
+                        }, 2800);
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                const shareFirst = isAndroid || isIOS || !!inTg;
+                if (shareFirst && (await tryShareOnce())) {
+                    return { ok: true, via: 'share' };
+                }
+                if (await trySavePicker()) {
+                    return { ok: true, via: 'picker' };
+                }
+                if (!shareFirst && (await tryShareOnce())) {
+                    return { ok: true, via: 'share' };
+                }
+                if (tryAnchorDownload()) {
+                    return { ok: true, via: 'download', hintDownloads: isAndroid };
+                }
+
+                if (inTg) {
+                    try {
+                        window.Telegram.WebApp.showAlert(
+                            'Выгрузка недоступна: нужен HTTPS у API (например ngrok) для Telegram, либо откройте админку в браузере (⋮ → «Открыть в браузере»).'
+                        );
+                    } catch (e2) {}
+                    return { ok: false, blocked: true };
+                }
+                return { ok: false, blocked: false };
+            } catch (e) {
+                return { ok: false, error: String(e && e.message ? e.message : e) };
+            }
+        }
+
+        function adminProductsDateIsoLocal(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        async function exportFilteredProductsXlsx() {
+            const { list, catFilter } = adminGetFilteredProductsList();
+            if (!list.length) {
+                showMessage('Нет товаров для выгрузки (смените фильтр или обновите список).', true);
+                return;
+            }
+            const catPart = catFilter === 'all' ? 'all' : catFilter;
+            const fname = 'aurum_products_' + catPart + '_' + adminProductsDateIsoLocal(new Date());
+            const headers = ['id', 'Категория', 'Название', 'Цена', 'CPU', 'GPU', 'Активен', 'Модерация', 'Изображение'];
+            const rows = list.map((p) => [
+                p.id,
+                ADMIN_CATEGORY_LABELS[adminCategoryKey(p)] || adminCategoryKey(p),
+                p.name || '',
+                String(Math.round(parseFloat(p.price) || 0)),
+                p.cpu || '',
+                p.gpu || '',
+                p.is_active ? '1' : '0',
+                p.moderation_status || 'approved',
+                p.image || '',
+            ]);
+            const dl = await aurumAdminDownloadXlsx(fname, 'Товары', headers, rows);
+            if (dl && dl.blocked) return;
+            if (dl && dl.lib) {
+                showMessage('Не загружена библиотека Excel. Обновите страницу.', true);
+                return;
+            }
+            if (dl && dl.error) {
+                showMessage('Ошибка выгрузки: ' + dl.error, true);
+                return;
+            }
+            if (!dl || !dl.ok) {
+                showMessage('Не удалось сохранить файл. Попробуйте открыть страницу в браузере Chrome.', true);
+                return;
+            }
+            let msg = 'Выгрузка прошла успешно!';
+            if (dl.via === 'telegram') msg = 'Подтвердите загрузку в окне Telegram, затем откройте «Загрузки» или «Файлы».';
+            else if (dl.via === 'picker') msg = 'Файл сохранён в выбранное место.';
+            else if (dl.via === 'share') msg = 'Выберите приложение или папку в меню «Поделиться».';
+            else if (dl.hintDownloads) msg = 'Файл .xlsx сохранён. Откройте папку «Загрузки» или приложение «Файлы».';
+            showMessage(msg);
+        }
+
+        function refreshModerationPanel() {
+            const panel = document.getElementById('moderation-panel');
+            const queue = document.getElementById('moderation-queue');
+            const empty = document.getElementById('moderation-empty');
+            const nav = document.getElementById('moderation-nav-link');
+            let role = '';
+            try {
+                role = sessionStorage.getItem('aurum_admin_role') || '';
+            } catch (e) {}
+            if (!panel || role !== 'super') {
+                if (panel) panel.classList.add('hidden');
+                if (nav) nav.classList.add('hidden');
+                return;
+            }
+            panel.classList.remove('hidden');
+            if (nav) nav.classList.remove('hidden');
+            const pending = (currentProducts || []).filter((p) => String(p.moderation_status || '').toLowerCase() === 'pending');
+            if (empty) {
+                empty.classList.toggle('hidden', pending.length === 0);
+            }
+            if (!queue) return;
+            if (!pending.length) {
+                queue.innerHTML = '';
+                return;
+            }
+            queue.innerHTML = pending
+                .map((p) => {
+                    const name = adminEscapeHtml(p.name || '');
+                    const price = Math.round(parseFloat(p.price) || 0).toLocaleString('ru-RU');
+                    const cat = adminEscapeHtml(ADMIN_CATEGORY_LABELS[adminCategoryKey(p)] || p.category_id || '');
+                    return `<div class="admin-readonly-box flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            <div class="min-w-0">
+                <div class="font-semibold text-[#f2ebe1]">${name}</div>
+                <div class="text-sm text-[#b8c4d4]">${cat} · ${price} ₽ · id ${p.id}</div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="admin-btn-ice text-sm py-2 px-3 rounded-xl" onclick="window.editProduct(${p.id})"><i class="fas fa-edit mr-1"></i>Редактировать</button>
+                <button type="button" class="admin-btn-ice text-sm py-2 px-3 rounded-xl" onclick="window.aurumModerateProduct(${p.id}, true)"><i class="fas fa-check mr-1"></i>Одобрить</button>
+                <button type="button" class="admin-btn-danger text-sm py-2 px-3 rounded-xl" onclick="window.aurumModerateProduct(${p.id}, false)"><i class="fas fa-times mr-1"></i>Отклонить</button>
+            </div>
+        </div>`;
+                })
+                .join('');
+        }
+
+        window.aurumModerateProduct = async function (id, approve) {
+            const verb = approve ? 'опубликовать' : 'отклонить';
+            if (!confirm(`Вы уверены, что хотите ${verb} эту карточку?`)) return;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/products?id=${encodeURIComponent(id)}&action=moderate`, {
+                    method: 'POST',
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                    body: JSON.stringify({ approve: !!approve }),
+                });
+                const d = await r.json().catch(() => ({}));
+                if (r.status === 401) {
+                    onAdminUnauthorized();
+                    return;
+                }
+                if (r.status === 403) {
+                    showMessage((d && d.error) ? d.error : 'Недостаточно прав', true);
+                    return;
+                }
+                if (!d.success) {
+                    showMessage((d && d.error) ? d.error : 'Ошибка модерации', true);
+                    return;
+                }
+                showMessage(d.message || 'Готово');
+                loadProducts();
+            } catch (e) {
+                showMessage('Ошибка сети', true);
+            }
+        };
+
         function adminRenderProductCard(product) {
             const name = adminEscapeHtml(product.name);
             const cpu = adminEscapeHtml(product.cpu || '');
             const gpu = adminEscapeHtml(product.gpu || '');
+            let ar = '';
+            try {
+                ar = sessionStorage.getItem('aurum_admin_role') || '';
+            } catch (e) {}
+            const mod = String(product.moderation_status || 'approved').toLowerCase();
+            const pending = mod === 'pending';
+            const rejected = mod === 'rejected';
+            const badge = pending
+                ? '<span class="ml-2 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/30">На модерации</span>'
+                : rejected
+                  ? '<span class="ml-2 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/25">Отклонено</span>'
+                  : '';
+            const mgrPending = ar === 'manager' && pending;
+            const toggleCls = mgrPending
+                ? 'opacity-45 cursor-not-allowed pointer-events-none'
+                : 'cursor-pointer';
+            const activeCls = product.is_active ? 'bg-emerald-600/90 hover:bg-emerald-600' : 'bg-red-600/90 hover:bg-red-600';
             return `
                 <div class="admin-panel rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                    <img src="${mediaUrl(product.image)}" alt="${name}" class="w-full sm:w-20 h-40 sm:h-20 object-cover rounded-xl bg-[rgba(8,12,20,0.88)] border border-white/10" onerror="this.src='/photo/4K.png'">
+                    <img src="${mediaUrl(product.image, product.id)}" alt="${name}" class="w-full sm:w-20 h-40 sm:h-20 object-cover rounded-xl bg-[rgba(8,12,20,0.88)] border border-white/10" onerror="this.src='/photo/4K.png'">
                     <div class="flex-1 min-w-0">
-                        <h3 class="font-bold text-[#f2ebe1]">${name}</h3>
+                        <h3 class="font-bold text-[#f2ebe1]">${name}${badge}</h3>
                         <p class="text-sm text-[#b8c4d4]">${cpu}${cpu && gpu ? ' · ' : ''}${gpu}</p>
                         <p class="text-[#8ec8ff] font-bold mt-1">${Math.round(parseFloat(product.price) || 0).toLocaleString('ru-RU')} ₽</p>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                        <button type="button" onclick="window.toggleActive(${product.id}, ${product.is_active ? 0 : 1})" class="px-3 py-1.5 rounded-full text-xs font-medium transition ${product.is_active ? 'bg-emerald-600/90 hover:bg-emerald-600' : 'bg-red-600/90 hover:bg-red-600'} cursor-pointer text-white border border-white/15 min-w-[80px]">
+                        <button type="button" onclick="window.toggleActive(${product.id}, ${product.is_active ? 0 : 1})" class="px-3 py-1.5 rounded-full text-xs font-medium transition ${activeCls} ${toggleCls} text-white border border-white/15 min-w-[80px]" ${mgrPending ? 'disabled' : ''} title="${mgrPending ? 'Сначала одобрите карточку (super)' : ''}">
                             ${product.is_active ? '✓ Активен' : '✗ Неактивен'}
                         </button>
                         <button type="button" onclick="window.editProduct(${product.id})" class="admin-btn-ice min-w-[40px] h-10 px-0 justify-center rounded-xl" title="Редактировать товар">
@@ -831,11 +1313,7 @@
                 return;
             }
 
-            let list = currentProducts.slice();
-            if (catFilter !== 'all') {
-                list = list.filter((p) => adminCategoryKey(p) === catFilter);
-            }
-            list = adminSortProducts(list, sortKey);
+            const { list } = adminGetFilteredProductsList();
 
             if (!list.length) {
                 container.innerHTML = '<div class="text-center text-[#b8c4d4] py-8">Нет товаров по выбранной категории</div>';
@@ -921,11 +1399,126 @@
             }).join('\n');
         }
 
+        async function adminLoadComponentOptions() {
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/component-options`, { headers: adminAuthHeaders() });
+                const d = await r.json().catch(() => ({}));
+                if (r.ok && d.data) adminComponentOptions = d.data;
+                else if (r.ok && d.cpus) adminComponentOptions = d;
+            } catch (e) {
+                adminComponentOptions = { cpus: [], gpus: [] };
+            }
+        }
+
+        function adminPopulateCpuGpuSelects() {
+            const cpus = adminComponentOptions.cpus || [];
+            const gpus = adminComponentOptions.gpus || [];
+            [['product-cpu', cpus], ['edit-product-cpu', cpus], ['product-gpu', gpus], ['edit-product-gpu', gpus]].forEach(([id, list]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const cur = el.value;
+                el.innerHTML = '<option value="">— Выберите —</option>' +
+                    list.map((c) => '<option value="' + adminEscapeHtmlAttr(c) + '">' + adminEscapeHtml(c) + '</option>').join('');
+                if (cur && [...el.options].some((o) => o.value === cur)) el.value = cur;
+            });
+        }
+
+        function adminAddOptionRow(containerId, listKey) {
+            const box = document.getElementById(containerId);
+            if (!box) return null;
+            const list = adminComponentOptions[listKey] || [];
+            const row = document.createElement('div');
+            row.className = 'flex flex-wrap gap-2 items-center';
+            const sel = document.createElement('select');
+            sel.className = 'flex-1 min-w-[10rem] p-2 rounded-lg text-sm';
+            sel.innerHTML = '<option value="">— компонент —</option>' +
+                list.map((c) => '<option value="' + adminEscapeHtmlAttr(c) + '">' + adminEscapeHtml(c) + '</option>').join('');
+            const price = document.createElement('input');
+            price.type = 'number';
+            price.className = 'w-28 p-2 rounded-lg text-sm';
+            price.placeholder = '±₽';
+            price.step = '1';
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'admin-btn-muted px-2 py-1 rounded-lg text-xs shrink-0';
+            rm.textContent = '×';
+            rm.addEventListener('click', () => row.remove());
+            row.appendChild(sel);
+            row.appendChild(price);
+            row.appendChild(rm);
+            const isFirst = box.children.length === 0;
+            if (isFirst) {
+                price.value = '0';
+                price.readOnly = true;
+                price.classList.add('opacity-60');
+            }
+            box.appendChild(row);
+            return row;
+        }
+
+        function adminFillOptionRowsFromArray(containerId, listKey, arr) {
+            const box = document.getElementById(containerId);
+            if (!box) return;
+            box.innerHTML = '';
+            if (!Array.isArray(arr) || !arr.length) {
+                adminAddOptionRow(containerId, listKey);
+                return;
+            }
+            arr.forEach((opt, idx) => {
+                adminAddOptionRow(containerId, listKey);
+                const rows = [...box.children];
+                const row = rows[rows.length - 1];
+                const sel = row.querySelector('select');
+                const pr = row.querySelector('input[type=number]');
+                if (sel) sel.value = (opt && opt.name) ? String(opt.name) : '';
+                if (pr) {
+                    if (idx === 0) {
+                        pr.value = '0';
+                        pr.readOnly = true;
+                        pr.classList.add('opacity-60');
+                    } else {
+                        pr.readOnly = false;
+                        pr.classList.remove('opacity-60');
+                        pr.value = String(Number(opt.price) || 0);
+                    }
+                }
+            });
+        }
+
+        function adminReadCpuGpuOptionRows(containerId) {
+            const box = document.getElementById(containerId);
+            if (!box) return [];
+            const out = [];
+            [...box.children].forEach((row, i) => {
+                const sel = row.querySelector('select');
+                const pr = row.querySelector('input[type=number]');
+                const name = (sel && sel.value || '').trim();
+                if (!name) return;
+                const delta = i === 0 ? 0 : Math.round(parseFloat(pr && pr.value) || 0);
+                out.push({ name, price: delta, selected: i === 0 });
+            });
+            return out;
+        }
+
+        function adminWireOptionRowButtons() {
+            [
+                ['opt-cpu-add', 'opt-cpu-rows', 'cpus'],
+                ['opt-gpu-add', 'opt-gpu-rows', 'gpus'],
+                ['edit-opt-cpu-add', 'edit-opt-cpu-rows', 'cpus'],
+                ['edit-opt-gpu-add', 'edit-opt-gpu-rows', 'gpus'],
+            ].forEach(([bid, cid, lk]) => {
+                const b = document.getElementById(bid);
+                if (b) b.addEventListener('click', () => adminAddOptionRow(cid, lk));
+            });
+        }
+
         function adminPresetToTextareas(cat, idPrefix) {
             const pre = idPrefix || '';
             const preset = (window.AURUM_ADMIN_OPTION_PRESETS || {})[cat];
+            adminFillOptionRowsFromArray(pre + 'opt-cpu-rows', 'cpus', preset && preset.cpu);
+            adminFillOptionRowsFromArray(pre + 'opt-gpu-rows', 'gpus', preset && preset.gpu);
             if (!preset) return;
-            ['cpu', 'gpu', 'ssd', 'warranty'].forEach((k) => {
+            ['ssd', 'warranty'].forEach((k) => {
                 const el = document.getElementById(pre + 'opt-' + k + '-lines');
                 if (el) el.value = adminOptionsToLines(preset[k]);
             });
@@ -933,22 +1526,31 @@
 
         function adminBuildConfigJson(fields) {
             const cat = fields.categoryEl.value || '4k';
-            const name = fields.nameEl.value.trim();
-            const price = Math.round(parseFloat(fields.priceEl.value) || 0);
+            const name = typeof fields.getComposedName === 'function'
+                ? String(fields.getComposedName() || '').trim()
+                : (fields.nameEl && fields.nameEl.value != null ? String(fields.nameEl.value).trim() : '');
+            const price = adminClampProductPrice(fields.priceEl.value);
             const image = fields.imageEl.value.trim();
-            const cpu = (fields.cpuEl.value || '').trim();
-            const gpu = (fields.gpuEl.value || '').trim();
+            const cpu = (fields.cpuEl && fields.cpuEl.value || '').trim();
+            const gpu = (fields.gpuEl && fields.gpuEl.value || '').trim();
             const description = fields.descEl.value || '';
+            const idPrefix = fields.idPrefix || '';
             const preset = (window.AURUM_ADMIN_OPTION_PRESETS || {})[cat] || null;
             const mergeGroup = (key, optEl) => {
                 const parsed = adminParseOptionLines(optEl ? optEl.value : '');
                 if (parsed.length) return parsed;
                 if (preset && preset[key]) return JSON.parse(JSON.stringify(preset[key]));
                 const fallback =
-                    key === 'cpu' ? (cpu || 'Процессор') :
-                    key === 'gpu' ? (gpu || 'Видеокарта') :
                     key === 'ssd' ? '1TB NVMe SSD' : '1 год';
                 return [{ name: fallback, price: 0, selected: true }];
+            };
+            const mergeCpuGpu = (key) => {
+                const cid = idPrefix + 'opt-' + key + '-rows';
+                let parsed = adminReadCpuGpuOptionRows(cid);
+                if (parsed.length) return parsed;
+                if (preset && preset[key]) return JSON.parse(JSON.stringify(preset[key]));
+                const fb = key === 'cpu' ? (cpu || 'Процессор') : (gpu || 'Видеокарта');
+                return [{ name: fb, price: 0, selected: true }];
             };
             return {
                 basePrice: price,
@@ -958,8 +1560,8 @@
                 name,
                 description,
                 options: {
-                    cpu: mergeGroup('cpu', fields.optCpuEl),
-                    gpu: mergeGroup('gpu', fields.optGpuEl),
+                    cpu: mergeCpuGpu('cpu'),
+                    gpu: mergeCpuGpu('gpu'),
                     ssd: mergeGroup('ssd', fields.optSsdEl),
                     warranty: mergeGroup('warranty', fields.optWarrantyEl),
                 },
@@ -974,7 +1576,9 @@
             }
             const cat = product.category_id || '4k';
             if (cfg && cfg.options && typeof cfg.options === 'object') {
-                ['cpu', 'gpu', 'ssd', 'warranty'].forEach((k) => {
+                adminFillOptionRowsFromArray(pre + 'opt-cpu-rows', 'cpus', cfg.options.cpu);
+                adminFillOptionRowsFromArray(pre + 'opt-gpu-rows', 'gpus', cfg.options.gpu);
+                ['ssd', 'warranty'].forEach((k) => {
                     const el = document.getElementById(pre + 'opt-' + k + '-lines');
                     if (el) el.value = adminOptionsToLines(cfg.options[k]);
                 });
@@ -983,7 +1587,7 @@
             adminPresetToTextareas(cat, pre);
         }
 
-        function wireAdminImagePicker(fileInputId, textInputId, buttonId) {
+        function wireAdminImagePicker(fileInputId, textInputId, buttonId, mode) {
             const fi = document.getElementById(fileInputId);
             const ti = document.getElementById(textInputId);
             const btn = document.getElementById(buttonId);
@@ -992,8 +1596,20 @@
             fi.addEventListener('change', () => {
                 const f = fi.files && fi.files[0];
                 if (!f) return;
-                const base = f.name.replace(/^.*[\\/]/, '');
-                ti.value = 'photo/' + base;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result;
+                    const mime = (f.type || 'image/jpeg').split(';')[0].trim() || 'image/jpeg';
+                    const b64 = String(dataUrl).split(',')[1] || '';
+                    if (mode === 'edit') {
+                        aurumPendingEditImage = { base64: b64, mime };
+                    } else {
+                        aurumPendingProductImage = { base64: b64, mime };
+                    }
+                    ti.value = '';
+                    ti.placeholder = 'Файл: ' + f.name + ' → в БД';
+                };
+                reader.readAsDataURL(f);
             });
         }
 
@@ -1033,6 +1649,7 @@
         function renderProducts(products) {
             currentProducts = Array.isArray(products) ? products : [];
             refreshAdminProductsListView();
+            refreshModerationPanel();
         }
 
         // Добавление товара
@@ -1041,29 +1658,62 @@
             const submitBtn = e.target.querySelector('button[type="submit"]');
             if (submitBtn) submitBtn.disabled = true;
 
+            const nm = adminComposeProductDisplayName(
+                document.getElementById('product-name-tier').value,
+                document.getElementById('product-name-suffix').value
+            );
+            if (nm.length > 255) {
+                showMessage('Итоговое название слишком длинное (макс. 255 символов).', true);
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+            const cpuV = document.getElementById('product-cpu').value.trim();
+            const gpuV = document.getElementById('product-gpu').value.trim();
+            if (!cpuV || !gpuV) {
+                showMessage('Выберите процессор и видеокарту по умолчанию', true);
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+            const imgPath = document.getElementById('product-image').value.trim();
+            if (!aurumPendingProductImage && !imgPath) {
+                showMessage('Загрузите изображение или укажите путь photo/…', true);
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+
+            const priceEl = document.getElementById('product-price');
+            const priceVal = adminClampProductPrice(priceEl.value);
+            priceEl.value = String(priceVal);
+
             const productData = {
                 category_id: document.getElementById('product-category').value,
-                name: document.getElementById('product-name').value,
-                price: Math.round(parseFloat(document.getElementById('product-price').value) || 0),
-                image: document.getElementById('product-image').value,
-                cpu: document.getElementById('product-cpu').value || null,
-                gpu: document.getElementById('product-gpu').value || null,
+                name: nm,
+                price: priceVal,
+                image: aurumPendingProductImage ? (imgPath || 'upload') : imgPath,
+                cpu: cpuV || null,
+                gpu: gpuV || null,
                 description: document.getElementById('product-description').value || null,
                 is_active: document.getElementById('product-active').checked ? 1 : 0,
                 config_json: adminBuildConfigJson({
+                    idPrefix: '',
                     categoryEl: document.getElementById('product-category'),
-                    nameEl: document.getElementById('product-name'),
+                    getComposedName: () => adminComposeProductDisplayName(
+                        document.getElementById('product-name-tier').value,
+                        document.getElementById('product-name-suffix').value
+                    ),
                     priceEl: document.getElementById('product-price'),
                     imageEl: document.getElementById('product-image'),
                     cpuEl: document.getElementById('product-cpu'),
                     gpuEl: document.getElementById('product-gpu'),
                     descEl: document.getElementById('product-description'),
-                    optCpuEl: document.getElementById('opt-cpu-lines'),
-                    optGpuEl: document.getElementById('opt-gpu-lines'),
                     optSsdEl: document.getElementById('opt-ssd-lines'),
                     optWarrantyEl: document.getElementById('opt-warranty-lines'),
                 }),
             };
+            if (aurumPendingProductImage) {
+                productData.image_base64 = aurumPendingProductImage.base64;
+                productData.image_mime = aurumPendingProductImage.mime;
+            }
 
             try {
                 const response = await adminFetch(`${API_BASE_URL}/products`, {
@@ -1086,8 +1736,13 @@
                 if (result.success) {
                     showMessage('Товар успешно добавлен!');
                     document.getElementById('add-product-form').reset();
+                    aurumPendingProductImage = null;
+                    document.getElementById('product-image').placeholder = '';
                     document.getElementById('product-description-template').value = '';
                     const cat = document.getElementById('product-category').value || '4k';
+                    const tierA = document.getElementById('product-name-tier');
+                    if (tierA) tierA.value = ['4k', '2k', 'fullhd'].includes(cat) ? cat : '4k';
+                    adminPopulateCpuGpuSelects();
                     adminPresetToTextareas(cat, '');
                     loadProducts();
                 } else {
@@ -1145,6 +1800,20 @@
             if (el) el.scrollTop = 0;
         }
 
+        function aurumAdminSetEditModalScrollLock(on) {
+            if (on) {
+                document.body.dataset.aurumAdminOverflow = document.body.style.overflow || '';
+                document.documentElement.dataset.aurumAdminOverflow = document.documentElement.style.overflow || '';
+                document.body.style.overflow = 'hidden';
+                document.documentElement.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = document.body.dataset.aurumAdminOverflow || '';
+                document.documentElement.style.overflow = document.documentElement.dataset.aurumAdminOverflow || '';
+                delete document.body.dataset.aurumAdminOverflow;
+                delete document.documentElement.dataset.aurumAdminOverflow;
+            }
+        }
+
         // Редактирование товара (глобальная функция)
         window.editProduct = async function(id) {
             const product = currentProducts.find(p => p.id == id);
@@ -1155,10 +1824,26 @@
 
             // Заполняем форму данными товара
             document.getElementById('edit-product-id').value = product.id;
-            document.getElementById('edit-product-category').value = product.category_id || '';
-            document.getElementById('edit-product-name').value = product.name || '';
-            document.getElementById('edit-product-price').value = product.price || '';
-            document.getElementById('edit-product-image').value = product.image || '';
+            const editCat = (product.category_id || '').toLowerCase();
+            document.getElementById('edit-product-category').value = editCat;
+            const nameParts = adminParseProductNameParts(product.name || '');
+            const tierEl = document.getElementById('edit-product-name-tier');
+            if (tierEl) {
+                let t = nameParts.tier;
+                if (editCat && ['4k', '2k', 'fullhd'].includes(editCat)) t = editCat;
+                tierEl.value = t;
+            }
+            const sufEl = document.getElementById('edit-product-name-suffix');
+            if (sufEl) sufEl.value = nameParts.suffix;
+            const ep = document.getElementById('edit-product-price');
+            ep.value = product.price || '';
+            ep.value = String(adminClampProductPrice(ep.value));
+            aurumPendingEditImage = null;
+            const im = product.image || '';
+            const imgEl = document.getElementById('edit-product-image');
+            imgEl.value = im === '__inline__' ? '' : im;
+            imgEl.placeholder = im === '__inline__' ? 'Фото в базе — при необходимости загрузите новое' : '';
+            adminPopulateCpuGpuSelects();
             document.getElementById('edit-product-cpu').value = product.cpu || '';
             document.getElementById('edit-product-gpu').value = product.gpu || '';
             document.getElementById('edit-product-description').value = product.description || '';
@@ -1170,6 +1855,7 @@
             const modal = document.getElementById('edit-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            aurumAdminSetEditModalScrollLock(true);
             resetEditModalScroll();
             requestAnimationFrame(() => {
                 resetEditModalScroll();
@@ -1181,6 +1867,10 @@
             resetEditModalScroll();
             document.getElementById('edit-modal').classList.add('hidden');
             document.getElementById('edit-modal').classList.remove('flex');
+            aurumAdminSetEditModalScrollLock(false);
+            aurumPendingEditImage = null;
+            const ei = document.getElementById('edit-product-image');
+            if (ei) ei.placeholder = '';
             document.getElementById('edit-product-form').reset();
         };
 
@@ -1191,29 +1881,56 @@
             if (submitBtn) submitBtn.disabled = true;
 
             const productId = document.getElementById('edit-product-id').value;
+            const cpuE = document.getElementById('edit-product-cpu').value.trim();
+            const gpuE = document.getElementById('edit-product-gpu').value.trim();
+            if (!cpuE || !gpuE) {
+                showMessage('Выберите процессор и видеокарту', true);
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+            const rawImg = document.getElementById('edit-product-image').value.trim();
+            const nmEdit = adminComposeProductDisplayName(
+                document.getElementById('edit-product-name-tier').value,
+                document.getElementById('edit-product-name-suffix').value
+            );
+            if (nmEdit.length > 255) {
+                showMessage('Итоговое название слишком длинное (макс. 255 символов).', true);
+                if (submitBtn) submitBtn.disabled = false;
+                return;
+            }
+            const editPriceEl = document.getElementById('edit-product-price');
+            const editPriceVal = adminClampProductPrice(editPriceEl.value);
+            editPriceEl.value = String(editPriceVal);
             const productData = {
                 category_id: document.getElementById('edit-product-category').value,
-                name: document.getElementById('edit-product-name').value,
-                price: Math.round(parseFloat(document.getElementById('edit-product-price').value) || 0),
-                image: document.getElementById('edit-product-image').value,
-                cpu: document.getElementById('edit-product-cpu').value || null,
-                gpu: document.getElementById('edit-product-gpu').value || null,
+                name: nmEdit,
+                price: editPriceVal,
+                cpu: cpuE || null,
+                gpu: gpuE || null,
                 description: document.getElementById('edit-product-description').value || null,
                 is_active: document.getElementById('edit-product-active').checked ? 1 : 0,
                 config_json: adminBuildConfigJson({
+                    idPrefix: 'edit-',
                     categoryEl: document.getElementById('edit-product-category'),
-                    nameEl: document.getElementById('edit-product-name'),
+                    getComposedName: () => adminComposeProductDisplayName(
+                        document.getElementById('edit-product-name-tier').value,
+                        document.getElementById('edit-product-name-suffix').value
+                    ),
                     priceEl: document.getElementById('edit-product-price'),
                     imageEl: document.getElementById('edit-product-image'),
                     cpuEl: document.getElementById('edit-product-cpu'),
                     gpuEl: document.getElementById('edit-product-gpu'),
                     descEl: document.getElementById('edit-product-description'),
-                    optCpuEl: document.getElementById('edit-opt-cpu-lines'),
-                    optGpuEl: document.getElementById('edit-opt-gpu-lines'),
                     optSsdEl: document.getElementById('edit-opt-ssd-lines'),
                     optWarrantyEl: document.getElementById('edit-opt-warranty-lines'),
                 }),
             };
+            if (aurumPendingEditImage) {
+                productData.image_base64 = aurumPendingEditImage.base64;
+                productData.image_mime = aurumPendingEditImage.mime;
+            } else if (rawImg) {
+                productData.image = rawImg;
+            }
 
             try {
                 console.log('Редактирование товара:', productId, productData);
@@ -1238,6 +1955,7 @@
                 
                 if (result.success) {
                     showMessage('Товар успешно обновлен!');
+                    aurumPendingEditImage = null;
                     window.closeEditModal();
                     loadProducts();
                 } else {
@@ -1289,6 +2007,14 @@
 
         // Обновление списка
         document.getElementById('refresh-products').addEventListener('click', loadProducts);
+        const exportProductsBtn = document.getElementById('export-products-xlsx');
+        if (exportProductsBtn) exportProductsBtn.addEventListener('click', () => exportFilteredProductsXlsx());
+        const editModalBackdrop = document.getElementById('edit-modal');
+        if (editModalBackdrop) {
+            editModalBackdrop.addEventListener('click', (e) => {
+                if (e.target === editModalBackdrop && window.closeEditModal) window.closeEditModal();
+            });
+        }
         const adminProductsFilterCat = document.getElementById('admin-products-filter-cat');
         const adminProductsSort = document.getElementById('admin-products-sort');
         if (adminProductsFilterCat) adminProductsFilterCat.addEventListener('change', refreshAdminProductsListView);

@@ -9,7 +9,7 @@ import time
 import urllib.error
 import re
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
 from pathlib import Path
@@ -17,7 +17,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -221,6 +221,12 @@ def ensure_user_state_table() -> None:
             ADD COLUMN IF NOT EXISTS cart_configs jsonb NOT NULL DEFAULT '{}'::jsonb
             """
         )
+        cur.execute(
+            """
+            ALTER TABLE user_state
+            ADD COLUMN IF NOT EXISTS favorite_configs jsonb NOT NULL DEFAULT '{}'::jsonb
+            """
+        )
         cur.execute("CREATE INDEX IF NOT EXISTS idx_user_state_updated_at ON user_state (updated_at DESC)")
         conn.commit()
 
@@ -262,6 +268,225 @@ def ensure_products_config_json_column() -> None:
         conn.commit()
 
 
+def ensure_products_image_blob_columns() -> None:
+    """Картинка товара в bytea (для загрузки с телефона без файла на диске)."""
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE products
+            ADD COLUMN IF NOT EXISTS image_data bytea NULL,
+            ADD COLUMN IF NOT EXISTS image_mime varchar(64) NULL
+            """
+        )
+        conn.commit()
+
+
+def ensure_products_moderation_columns() -> None:
+    """Модерация карточек от менеджеров: pending → одобрение super."""
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE products
+            ADD COLUMN IF NOT EXISTS moderation_status varchar(20) NOT NULL DEFAULT 'approved'
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE products
+            ADD COLUMN IF NOT EXISTS created_by_role varchar(10) NULL
+            """
+        )
+        conn.commit()
+
+
+def _product_catalog_sql_predicate(alias: str = "") -> str:
+    """Условие видимости товара во витрине (миграции: moderation_status по умолчанию approved)."""
+    p = f"{alias}." if alias else ""
+    return f"({p}is_active = true AND COALESCE({p}moderation_status, 'approved') = 'approved')"
+
+
+def _notify_owners_pending_product(product_id: int, name: str, price_val: Any) -> None:
+    owners = _owner_telegram_ids()
+    if not owners:
+        return
+    text = (
+        "🛍️ Новая карточка на модерации\n"
+        f"ID: {product_id}\n"
+        f"{name}\n"
+        f"Цена: {_money_str(price_val)} ₽\n"
+        "Админ-панель → Товары → блок «Модерация»."
+    )
+    for cid in owners:
+        _telegram_send_message(int(cid), text)
+
+
+def ensure_promo_codes_creator_column() -> None:
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE promo_codes
+            ADD COLUMN IF NOT EXISTS creator_telegram_id bigint NULL
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_promo_codes_creator ON promo_codes (creator_telegram_id)"
+        )
+        conn.commit()
+
+
+MAX_ADMIN_PRODUCT_IMAGE_BYTES = 3 * 1024 * 1024
+_ALLOWED_IMAGE_MIMES = frozenset(
+    {"image/jpeg", "image/png", "image/webp", "image/gif", "image/jpg"}
+)
+MAX_PROMO_PCT_MANAGER = 15.0
+MAX_PROMO_PCT_SUPER = 50.0
+MAX_PRODUCT_NAME_LEN = 255
+MAX_PRODUCT_IMAGE_PATH_LEN = 255
+MAX_PRODUCT_PRICE = 2_000_000.0
+
+
+def _admin_promo_percent_cap(request: Request) -> float:
+    return MAX_PROMO_PCT_SUPER if get_admin_role_from_request(request) == "super" else MAX_PROMO_PCT_MANAGER
+
+
+def _assert_promo_percent_for_role(request: Request, pct: float) -> None:
+    cap = _admin_promo_percent_cap(request)
+    if pct > cap + 1e-9:
+        json_error(f"Максимальная скидка для вашей роли — {cap:g}%", 400)
+
+
+def _decode_optional_image_upload(data: dict[str, Any]) -> tuple[Optional[bytes], Optional[str]]:
+    raw_b64 = data.get("image_base64")
+    if raw_b64 is None or str(raw_b64).strip() == "":
+        return None, None
+    mime = str(data.get("image_mime") or "image/jpeg").strip().lower()[:64]
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    if mime not in _ALLOWED_IMAGE_MIMES:
+        json_error("Недопустимый тип изображения (разрешены JPEG, PNG, WebP, GIF)", 400)
+    try:
+        raw = str(raw_b64).strip()
+        if raw.startswith("data:") and "," in raw:
+            raw = raw.split(",", 1)[1]
+        blob = base64.b64decode(raw, validate=True)
+    except Exception:
+        json_error("Некорректные данные изображения (base64)", 400)
+    if len(blob) > MAX_ADMIN_PRODUCT_IMAGE_BYTES:
+        json_error(f"Файл изображения слишком большой (макс. {MAX_ADMIN_PRODUCT_IMAGE_BYTES // (1024 * 1024)} МБ)", 400)
+    return blob, mime
+
+
+def _product_row_for_api(row: dict[str, Any]) -> dict[str, Any]:
+    r = dict(row)
+    blob = r.get("image_data")
+    r.pop("image_data", None)
+    mime = r.pop("image_mime", None)
+    if blob:
+        r["image"] = "__inline__"
+    elif mime and not r.get("image"):
+        r["image"] = "__inline__"
+    return r
+
+
+def _validate_product_name(name: str) -> str:
+    s = (name or "").strip()
+    if not s:
+        json_error("Название товара обязательно", 400)
+    if len(s) > MAX_PRODUCT_NAME_LEN:
+        json_error(f"Название не длиннее {MAX_PRODUCT_NAME_LEN} символов", 400)
+    return s
+
+
+def _validate_product_price_value(price_val: float) -> float:
+    if price_val < 0 or math.isnan(price_val) or math.isinf(price_val):
+        json_error("Некорректная цена", 400)
+    if price_val > MAX_PRODUCT_PRICE:
+        json_error(f"Цена не может превышать {int(MAX_PRODUCT_PRICE):,} ₽".replace(",", " "), 400)
+    return float(price_val)
+
+
+def _validate_image_path_optional(raw: Any) -> Optional[str]:
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    if s.lower() == "__inline__":
+        json_error("Для смены фото из базы используйте «Выбрать файл», не редактируйте служебное поле", 400)
+    if len(s) > MAX_PRODUCT_IMAGE_PATH_LEN:
+        json_error(f"Путь к изображению не длиннее {MAX_PRODUCT_IMAGE_PATH_LEN} символов", 400)
+    if "\x00" in s or "\n" in s or "\r" in s:
+        json_error("Некорректный путь к изображению", 400)
+    return s
+
+
+def _collect_component_option_lists() -> dict[str, list[str]]:
+    cpus: set[str] = set()
+    gpus: set[str] = set()
+
+    def add_cpu(v: Any) -> None:
+        s = str(v or "").strip()
+        if s:
+            cpus.add(s)
+
+    def add_gpu(v: Any) -> None:
+        s = str(v or "").strip()
+        if s:
+            gpus.add(s)
+
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            f"SELECT cpu, gpu, config_json FROM products WHERE {_product_catalog_sql_predicate()}"
+        )
+        for row in cur.fetchall():
+            add_cpu(row.get("cpu"))
+            add_gpu(row.get("gpu"))
+            cfg = row.get("config_json")
+            if isinstance(cfg, str) and cfg.strip():
+                try:
+                    cfg = json.loads(cfg)
+                except json.JSONDecodeError:
+                    cfg = None
+            if not isinstance(cfg, dict):
+                continue
+            add_cpu(cfg.get("baseCpu"))
+            add_gpu(cfg.get("baseGpu"))
+            opts = cfg.get("options")
+            if not isinstance(opts, dict):
+                continue
+            for key, add_fn in (("cpu", add_cpu), ("gpu", add_gpu)):
+                arr = opts.get(key)
+                if not isinstance(arr, list):
+                    continue
+                for item in arr:
+                    if isinstance(item, dict) and item.get("name"):
+                        add_fn(item.get("name"))
+                    elif isinstance(item, str):
+                        add_fn(item)
+    return {
+        "cpus": sorted(cpus, key=lambda x: x.lower()),
+        "gpus": sorted(gpus, key=lambda x: x.lower()),
+    }
+
+
+def _assert_promo_self_use(cur: Any, code: str, telegram_id: Optional[int]) -> None:
+    if telegram_id is None:
+        return
+    c = str(code or "").strip().upper()
+    if not c:
+        return
+    cur.execute(
+        "SELECT creator_telegram_id FROM promo_codes WHERE UPPER(code) = %s AND is_active = TRUE",
+        (c,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return
+    ct = row.get("creator_telegram_id")
+    if ct is not None and int(ct) == int(telegram_id):
+        json_error("Нельзя применить промокод, который вы создали", 400)
+
+
 def ensure_orders_telegram_columns() -> None:
     """Снимок Telegram при оформлении: чат с клиентом и уведомления."""
     with db_conn() as conn, conn.cursor() as cur:
@@ -278,6 +503,50 @@ def ensure_orders_telegram_columns() -> None:
             """
         )
         conn.commit()
+
+
+def ensure_orders_pricing_metadata_columns() -> None:
+    """Сумма до скидок, скидка %/₽, списанные бонусы — для админки и отчётов."""
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS subtotal_amount numeric(10, 2) NULL
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS discount_amount numeric(10, 2) NOT NULL DEFAULT 0
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS discount_percent numeric(8, 2) NULL
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS bonus_used integer NOT NULL DEFAULT 0
+            """
+        )
+        conn.commit()
+
+
+def _owner_telegram_ids() -> set[int]:
+    raw = _env("OWNER_TELEGRAM_IDS", "")
+    out: set[int] = set()
+    for part in raw.replace(";", ",").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            out.add(int(part))
+        except ValueError:
+            continue
+    return out
 
 
 _ORDER_STATUS_RU = {
@@ -623,6 +892,13 @@ def admin_staff_list(request: Request):
 @app.post("/api/admin/staff")
 def admin_staff_set(request: Request, payload: AdminStaffPayload):
     require_super_admin(request)
+    if not payload.is_staff:
+        owners = _owner_telegram_ids()
+        if owners and int(payload.telegram_id) in owners:
+            json_error(
+                "Нельзя снять доступ менеджера с закреплённого аккаунта владельца (настройки сервера).",
+                403,
+            )
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -640,11 +916,109 @@ def admin_staff_set(request: Request, payload: AdminStaffPayload):
     return {"success": True, "data": row, "message": "Права обновлены"}
 
 
+# Временные ссылки на .xlsx для Telegram Mini App: WebApp.downloadFile() требует публичный URL (blob нельзя).
+# Токен живёт до TTL; несколько GET по одному URL — норма (WebView делает повторный запрос при сохранении).
+_MAX_ADMIN_EXPORT_BYTES = 18 * 1024 * 1024
+_ADMIN_EXPORT_TTL_SEC = 300
+_admin_export_blobs: dict[str, dict[str, Any]] = {}
+
+
+def _admin_export_cleanup_stale() -> None:
+    now = time.time()
+    for k, v in list(_admin_export_blobs.items()):
+        if now - float(v.get("created", 0)) > _ADMIN_EXPORT_TTL_SEC:
+            _admin_export_blobs.pop(k, None)
+    if len(_admin_export_blobs) > 80:
+        for k, _ in sorted(_admin_export_blobs.items(), key=lambda kv: float(kv[1].get("created", 0)))[:30]:
+            _admin_export_blobs.pop(k, None)
+
+
+def _admin_public_base_url(request: Request) -> str:
+    fwd = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+    host = (request.headers.get("x-forwarded-host") or "").split(",")[0].strip()
+    if fwd in ("https", "http") and host:
+        return f"{fwd}://{host}".rstrip("/")
+    return str(request.base_url).rstrip("/")
+
+
+@app.post("/api/admin/export-register")
+def admin_export_register(request: Request, payload: dict[str, Any] = Body(...)):
+    require_admin(request)
+    _admin_export_cleanup_stale()
+    b64 = payload.get("content_base64")
+    filename = str(payload.get("filename") or "export.xlsx").strip()
+    if not b64 or not isinstance(b64, str):
+        json_error("content_base64 обязателен", 400)
+    try:
+        raw = base64.b64decode(b64.strip(), validate=True)
+    except Exception:
+        json_error("Некорректный base64", 400)
+    if not raw:
+        json_error("Пустой файл", 400)
+    if len(raw) > _MAX_ADMIN_EXPORT_BYTES:
+        json_error("Файл слишком большой для выгрузки", 400)
+    fn = re.sub(r"[^a-zA-Z0-9._\-\u0400-\u04FF]+", "_", filename).strip("._") or "export"
+    if not fn.lower().endswith(".xlsx"):
+        fn = fn + ".xlsx"
+    if len(fn) > 200:
+        fn = fn[-200:]
+    token = secrets.token_urlsafe(32)
+    _admin_export_blobs[token] = {"bytes": raw, "filename": fn, "created": time.time()}
+    base = _admin_public_base_url(request)
+    url = f"{base}/api/admin/export-file/{token}"
+    return {"success": True, "url": url, "filename": fn}
+
+
+@app.get("/api/admin/export-file/{token}")
+def admin_export_file_download(token: str):
+    _admin_export_cleanup_stale()
+    row = _admin_export_blobs.get(token)
+    if not row:
+        raise HTTPException(status_code=404, detail="Ссылка устарела или не найдена")
+    data = row.get("bytes")
+    if not isinstance(data, (bytes, bytearray)):
+        raise HTTPException(status_code=404, detail="not found")
+    fn = str(row.get("filename") or "export.xlsx")
+    return Response(
+        content=bytes(data),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{fn}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        },
+    )
+
+
+@app.head("/api/admin/export-file/{token}")
+def admin_export_file_head(token: str):
+    _admin_export_cleanup_stale()
+    row = _admin_export_blobs.get(token)
+    if not row:
+        raise HTTPException(status_code=404, detail="Ссылка устарела или не найдена")
+    data = row.get("bytes")
+    if not isinstance(data, (bytes, bytearray)):
+        raise HTTPException(status_code=404, detail="not found")
+    fn = str(row.get("filename") or "export.xlsx")
+    body = bytes(data)
+    return Response(
+        content=b"",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{fn}"',
+            "Content-Length": str(len(body)),
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Pragma": "no-cache",
+        },
+    )
+
+
 class PromoCodeCreatePayload(BaseModel):
     code: str
     discount_percent: float
     is_active: bool = True
     note: Optional[str] = None
+    creator_telegram_id: Optional[int] = None
 
 
 class PromoCodePatchPayload(BaseModel):
@@ -653,13 +1027,69 @@ class PromoCodePatchPayload(BaseModel):
     note: Optional[str] = None
 
 
+class AdminFinanceResetPayload(BaseModel):
+    telegram_id: int
+
+
+@app.get("/api/admin/component-options")
+def admin_component_options(request: Request):
+    require_admin(request)
+    return json_success(_collect_component_option_lists())
+
+
+@app.post("/api/admin/user-finance-reset")
+def admin_user_finance_reset(request: Request, payload: AdminFinanceResetPayload):
+    require_super_admin(request)
+    try:
+        tid = int(payload.telegram_id)
+    except (TypeError, ValueError):
+        json_error("Некорректный telegram_id", 400)
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM certificate_pending WHERE telegram_id = %s", (tid,))
+        cur.execute(
+            "SELECT profile_finance FROM user_state WHERE telegram_id = %s",
+            (tid,),
+        )
+        row = cur.fetchone()
+        if row:
+            existing = row.get("profile_finance")
+            pf = existing if isinstance(existing, dict) else {}
+            full = _normalize_profile_finance(pf)
+            new_core = _normalize_profile_finance_core(
+                {
+                    "balance": full["balance"],
+                    "bonuses": 0,
+                    "personalDiscount": 0,
+                    "activeCertificateCode": None,
+                }
+            )
+            new_pf = {
+                **new_core,
+                "deposit_history": full["deposit_history"],
+                "deposit_history_revision": full["deposit_history_revision"],
+            }
+            cur.execute(
+                """
+                UPDATE user_state
+                SET profile_finance = %s::jsonb, updated_at = NOW()
+                WHERE telegram_id = %s
+                """,
+                (json.dumps(new_pf, ensure_ascii=False), tid),
+            )
+        conn.commit()
+    return {
+        "success": True,
+        "message": "Ожидающий промокод сброшен, персональная скидка и бонусы в профиле обнулены",
+    }
+
+
 @app.get("/api/admin/promo-codes")
 def admin_promo_codes_list(request: Request):
     require_admin(request)
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, code, discount_percent, is_active, note, created_at, updated_at
+            SELECT id, code, discount_percent, is_active, note, creator_telegram_id, created_at, updated_at
             FROM promo_codes
             ORDER BY id ASC
             """
@@ -671,21 +1101,49 @@ def admin_promo_codes_list(request: Request):
 @app.post("/api/admin/promo-codes")
 def admin_promo_codes_create(request: Request, payload: PromoCodeCreatePayload):
     require_admin(request)
+    role = get_admin_role_from_request(request) or "manager"
     code = str(payload.code or "").strip().upper()
     if not code or len(code) > 64:
         json_error("Некорректный код", 400)
     pct = float(payload.discount_percent)
     if pct <= 0 or pct > 100:
         json_error("Процент скидки от 0.01 до 100", 400)
+    _assert_promo_percent_for_role(request, pct)
     note = (payload.note or "").strip() or None
+    creator_tg: Optional[int] = None
+    if role == "manager":
+        raw_ct = payload.creator_telegram_id
+        if raw_ct is None:
+            json_error(
+                "Укажите ваш Telegram ID (в мини-приложении подставляется автоматически) — "
+                "так мы запрещаем применять свой же промокод.",
+                400,
+            )
+        try:
+            creator_tg = int(raw_ct)
+        except (TypeError, ValueError):
+            json_error("Некорректный creator_telegram_id", 400)
+    else:
+        if payload.creator_telegram_id is not None:
+            try:
+                creator_tg = int(payload.creator_telegram_id)
+            except (TypeError, ValueError):
+                json_error("Некорректный creator_telegram_id", 400)
     with db_conn() as conn, conn.cursor() as cur:
+        if role == "manager" and creator_tg is not None:
+            cur.execute(
+                "SELECT 1 FROM users WHERE telegram_id = %s AND is_staff = true",
+                (creator_tg,),
+            )
+            if not cur.fetchone():
+                json_error("Telegram ID должен принадлежать пользователю с правами менеджера (is_staff).", 400)
         cur.execute(
             """
-            INSERT INTO promo_codes (code, discount_percent, is_active, note)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id, code, discount_percent, is_active, note, created_at, updated_at
+            INSERT INTO promo_codes (code, discount_percent, is_active, note, creator_telegram_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, code, discount_percent, is_active, note, creator_telegram_id, created_at, updated_at
             """,
-            (code, pct, bool(payload.is_active), note),
+            (code, pct, bool(payload.is_active), note, creator_tg),
         )
         row = cur.fetchone()
         conn.commit()
@@ -701,6 +1159,7 @@ def admin_promo_codes_patch(request: Request, promo_id: int, payload: PromoCodeP
         p = float(payload.discount_percent)
         if p <= 0 or p > 100:
             json_error("Процент скидки от 0.01 до 100", 400)
+        _assert_promo_percent_for_role(request, p)
         fields.append("discount_percent = %s")
         values.append(p)
     if payload.is_active is not None:
@@ -715,7 +1174,7 @@ def admin_promo_codes_patch(request: Request, promo_id: int, payload: PromoCodeP
     values.append(promo_id)
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
-            f"UPDATE promo_codes SET {', '.join(fields)} WHERE id = %s RETURNING id, code, discount_percent, is_active, note, created_at, updated_at",
+            f"UPDATE promo_codes SET {', '.join(fields)} WHERE id = %s RETURNING id, code, discount_percent, is_active, note, creator_telegram_id, created_at, updated_at",
             tuple(values),
         )
         row = cur.fetchone()
@@ -938,6 +1397,30 @@ def categories_get():
     return json_success(categories, "categories")
 
 
+@app.get("/api/products/image/{product_id}")
+def product_image_get(product_id: int):
+    """Выдача изображения из БД: витрина (опубликовано) или карточка на модерации (для превью в админке)."""
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT image_data, image_mime FROM products
+            WHERE id = %s AND image_data IS NOT NULL
+              AND (
+                {_product_catalog_sql_predicate()}
+                OR COALESCE(moderation_status, 'approved') IN ('pending', 'rejected')
+              )
+            """,
+            (product_id,),
+        )
+        row = cur.fetchone()
+    if not row or not row.get("image_data"):
+        raise HTTPException(status_code=404, detail="Изображение не найдено")
+    mime = str(row.get("image_mime") or "image/jpeg").strip() or "image/jpeg"
+    data = row["image_data"]
+    body = bytes(data) if not isinstance(data, (bytes, bytearray)) else data
+    return Response(content=body, media_type=mime)
+
+
 @app.get("/api/products")
 def products_get(
     request: Request,
@@ -948,51 +1431,64 @@ def products_get(
 ):
     with db_conn() as conn, conn.cursor() as cur:
         if id is not None:
-            cur.execute(
-                """
-                SELECT id, name, price, image, cpu, gpu, description, category_id, config_json
-                FROM products
-                WHERE id = %s AND is_active = true
-                """,
-                (id,),
-            )
+            admin_detail = admin_authorized(request) and ((admin == "1") or (admin_mode == "true"))
+            if admin_detail:
+                cur.execute(
+                    """
+                    SELECT id, name, price, image, cpu, gpu, description, category_id, config_json, image_data, image_mime,
+                           is_active, moderation_status, created_by_role
+                    FROM products
+                    WHERE id = %s
+                    """,
+                    (id,),
+                )
+            else:
+                cur.execute(
+                    f"""
+                    SELECT id, name, price, image, cpu, gpu, description, category_id, config_json, image_data, image_mime
+                    FROM products
+                    WHERE id = %s AND {_product_catalog_sql_predicate()}
+                    """,
+                    (id,),
+                )
             product = cur.fetchone()
             if not product:
                 json_error("Товар не найден", 404)
-            return {"success": True, "data": product, "product": product}
+            return {"success": True, "data": _product_row_for_api(product), "product": _product_row_for_api(product)}
 
         if category is not None:
             cur.execute(
-                """
-                SELECT id, name, price, image, cpu, gpu, description, category_id, config_json
+                f"""
+                SELECT id, name, price, image, cpu, gpu, description, category_id, config_json, image_data, image_mime
                 FROM products
-                WHERE category_id = %s AND is_active = true
+                WHERE category_id = %s AND {_product_catalog_sql_predicate()}
                 ORDER BY id ASC
                 """,
                 (category,),
             )
-            products = cur.fetchall()
+            products = [_product_row_for_api(p) for p in cur.fetchall()]
             return json_success(products, "products")
 
         show_all = ((admin == "1") or (admin_mode == "true")) and admin_authorized(request)
         if show_all:
             cur.execute(
                 """
-                SELECT id, name, price, image, cpu, gpu, category_id, description, is_active, config_json
+                SELECT id, name, price, image, cpu, gpu, category_id, description, is_active, config_json, image_data, image_mime,
+                       moderation_status, created_by_role
                 FROM products
                 ORDER BY category_id, id
                 """
             )
         else:
             cur.execute(
-                """
-                SELECT id, name, price, image, cpu, gpu, category_id, description, is_active, config_json
+                f"""
+                SELECT id, name, price, image, cpu, gpu, category_id, description, is_active, config_json, image_data, image_mime
                 FROM products
-                WHERE is_active = true
+                WHERE {_product_catalog_sql_predicate()}
                 ORDER BY category_id, id
                 """
             )
-        products = cur.fetchall()
+        products = [_product_row_for_api(p) for p in cur.fetchall()]
         return json_success(products, "products")
 
 
@@ -1018,29 +1514,53 @@ def _parse_config_json_payload(raw: Any) -> Optional[dict[str, Any]]:
     return None
 
 
-def _products_admin_update(product_id: int, data: dict[str, Any]) -> dict[str, Any]:
+def _products_admin_update(request: Request, product_id: int, data: dict[str, Any]) -> dict[str, Any]:
+    role = get_admin_role_from_request(request) or "manager"
     fields: list[str] = []
     values: list[Any] = []
     price_int_for_config_sync: int | None = None
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, moderation_status FROM products WHERE id = %s",
+            (product_id,),
+        )
+        existing = cur.fetchone()
+        if not existing:
+            json_error("Товар не найден", 404)
+        mod_st = str(existing.get("moderation_status") or "approved").lower()
+    if role == "manager" and mod_st == "pending" and "is_active" in data and _coerce_bool(data.get("is_active")):
+        json_error("Публикация доступна только после одобрения главным администратором", 403)
     if "category_id" in data:
         fields.append("category_id = %s")
         values.append(data["category_id"])
     if "name" in data:
         fields.append("name = %s")
-        values.append(data["name"])
+        values.append(_validate_product_name(str(data.get("name") or "")))
     if "price" in data:
         try:
             pv = float(data["price"])
         except (TypeError, ValueError):
             json_error("Некорректная цена", 400)
-        if pv < 0 or math.isnan(pv) or math.isinf(pv):
-            json_error("Некорректная цена", 400)
+        pv = _validate_product_price_value(pv)
         price_int_for_config_sync = int(round(pv))
         fields.append("price = %s")
         values.append(price_int_for_config_sync)
-    if "image" in data:
+    img_blob, img_mime = _decode_optional_image_upload(data) if "image_base64" in data else (None, None)
+    if img_blob:
         fields.append("image = %s")
-        values.append(data["image"])
+        values.append("__inline__")
+        fields.append("image_data = %s")
+        values.append(img_blob)
+        fields.append("image_mime = %s")
+        values.append(img_mime)
+    elif "image" in data:
+        ip = _validate_image_path_optional(data.get("image"))
+        if ip is None:
+            json_error("Укажите путь к изображению (photo/...) или загрузите файл", 400)
+        fields.append("image = %s")
+        values.append(ip)
+        fields.append("image_data = NULL")
+        fields.append("image_mime = NULL")
     if "cpu" in data:
         fields.append("cpu = %s")
         values.append(data["cpu"])
@@ -1063,13 +1583,14 @@ def _products_admin_update(product_id: int, data: dict[str, Any]) -> dict[str, A
                 json_error("Некорректный config_json", 400)
             fields.append("config_json = CAST(%s AS jsonb)")
             values.append(json.dumps(cfg, ensure_ascii=False))
+    if role == "super" and mod_st in ("pending", "rejected") and "is_active" in data and _coerce_bool(data.get("is_active")):
+        if not any("moderation_status" in f for f in fields):
+            fields.append("moderation_status = %s")
+            values.append("approved")
     if not fields:
         json_error("Нет полей для обновления", 400)
     values.append(product_id)
     with db_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
-        if not cur.fetchone():
-            json_error("Товар не найден", 404)
         cur.execute("UPDATE products SET " + ", ".join(fields) + " WHERE id = %s", values)
         if price_int_for_config_sync is not None and "config_json" not in data:
             cur.execute(
@@ -1083,57 +1604,118 @@ def _products_admin_update(product_id: int, data: dict[str, Any]) -> dict[str, A
         cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
         product = cur.fetchone()
         conn.commit()
-    return jsonable_encoder({"success": True, "data": product, "message": "Товар успешно обновлен"})
+    return jsonable_encoder(
+        {"success": True, "data": _product_row_for_api(product), "message": "Товар успешно обновлен"}
+    )
 
 
-def _products_admin_create(data: dict[str, Any]) -> JSONResponse:
+def _products_admin_create(data: dict[str, Any], *, admin_role: str) -> JSONResponse:
     category_id = data.get("category_id")
-    name = (data.get("name") or "").strip() if data.get("name") is not None else ""
+    name = _validate_product_name(str(data.get("name") or ""))
     price = data.get("price")
-    if not category_id or not name or price is None or price == "":
+    if not category_id or price is None or price == "":
         json_error("Обязательные поля: category_id, name, price", 400)
     try:
         price_val = float(price)
     except (TypeError, ValueError):
         json_error("Некорректная цена", 400)
-    if price_val < 0 or math.isnan(price_val) or math.isinf(price_val):
-        json_error("Некорректная цена", 400)
-    price_val = round(price_val)
+    price_val = round(_validate_product_price_value(price_val))
+    img_blob, img_mime = _decode_optional_image_upload(data)
+    image_path = _validate_image_path_optional(data.get("image"))
+    if img_blob:
+        image_sql = "__inline__"
+    else:
+        if not image_path:
+            json_error("Укажите изображение: загрузите файл или путь вида photo/… на сервере", 400)
+        image_sql = image_path
     cfg = _parse_config_json_payload(data.get("config_json"))
     cfg_sql: Optional[str] = json.dumps(cfg, ensure_ascii=False) if cfg is not None else None
+
+    if admin_role == "manager":
+        mod_status = "pending"
+        is_active = False
+        created_by = "manager"
+        msg = "Карточка отправлена на модерацию главному администратору"
+    else:
+        mod_status = "approved"
+        is_active = _coerce_bool(data.get("is_active", True))
+        created_by = "super"
+        msg = "Товар успешно создан"
+
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT id FROM categories WHERE id = %s", (category_id,))
         if not cur.fetchone():
             json_error("Категория не найдена", 400)
         cur.execute(
             """
-            INSERT INTO products (category_id, name, price, image, cpu, gpu, description, is_active, config_json)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CAST(%s AS jsonb))
+            INSERT INTO products (
+                category_id, name, price, image, cpu, gpu, description, is_active, config_json, image_data, image_mime,
+                moderation_status, created_by_role
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CAST(%s AS jsonb), %s, %s, %s, %s)
             RETURNING id
             """,
             (
                 category_id,
                 name,
                 price_val,
-                data.get("image"),
+                image_sql,
                 data.get("cpu"),
                 data.get("gpu"),
                 data.get("description"),
-                _coerce_bool(data.get("is_active", True)),
+                is_active,
                 cfg_sql,
+                img_blob,
+                img_mime,
+                mod_status,
+                created_by,
             ),
         )
         new_id = cur.fetchone()["id"]
         cur.execute("SELECT * FROM products WHERE id = %s", (new_id,))
         product = cur.fetchone()
         conn.commit()
-    # JSONResponse без jsonable_encoder ломается на Decimal/datetime из PostgreSQL → 500
+    if admin_role == "manager":
+        _notify_owners_pending_product(int(new_id), name, price_val)
     return JSONResponse(
         status_code=201,
         content=jsonable_encoder(
-            {"success": True, "data": product, "message": "Товар успешно создан"}
+            {"success": True, "data": _product_row_for_api(product), "message": msg}
         ),
     )
+
+
+def _products_admin_moderate(product_id: int, data: dict[str, Any]) -> dict[str, Any]:
+    if "approve" not in data:
+        json_error("В теле запроса укажите approve: true (опубликовать) или false (отклонить)", 400)
+    approve = _coerce_bool(data.get("approve"))
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
+        if not cur.fetchone():
+            json_error("Товар не найден", 404)
+        if approve:
+            cur.execute(
+                """
+                UPDATE products
+                SET moderation_status = %s, is_active = true
+                WHERE id = %s
+                """,
+                ("approved", product_id),
+            )
+        else:
+            cur.execute(
+                """
+                UPDATE products
+                SET moderation_status = %s, is_active = false
+                WHERE id = %s
+                """,
+                ("rejected", product_id),
+            )
+        cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
+        product = cur.fetchone()
+        conn.commit()
+    out_msg = "Карточка опубликована" if approve else "Карточка отклонена"
+    return {"success": True, "data": _product_row_for_api(product), "message": out_msg}
 
 
 @app.post("/api/products")
@@ -1144,9 +1726,13 @@ def products_post(
     action: Optional[str] = Query(default=None),
 ):
     require_admin(request)
+    if action == "moderate" and id is not None:
+        require_super_admin(request)
+        return jsonable_encoder(_products_admin_moderate(id, payload))
     if action == "update" and id is not None:
-        return _products_admin_update(id, payload)
-    res = _products_admin_create(payload)
+        return _products_admin_update(request, id, payload)
+    role = get_admin_role_from_request(request) or "manager"
+    res = _products_admin_create(payload, admin_role=role)
     return res
 
 
@@ -1544,7 +2130,7 @@ def user_state_get(telegram_id: int = Query(...)):
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, updated_at
+            SELECT telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, favorite_configs, updated_at
             FROM user_state
             WHERE telegram_id = %s
             """,
@@ -1558,16 +2144,19 @@ def user_state_get(telegram_id: int = Query(...)):
             "favorite_ids": [],
             "profile_finance": _normalize_profile_finance({}),
             "cart_configs": {},
+            "favorite_configs": {},
             "updated_at": None,
         }
     else:
         cc_raw = row.get("cart_configs")
+        fc_raw = row.get("favorite_configs")
         payload = {
             "telegram_id": int(row["telegram_id"]),
             "cart_items": _normalize_cart_items(row.get("cart_items")),
             "favorite_ids": _normalize_favorite_ids(row.get("favorite_ids")),
             "profile_finance": _normalize_profile_finance(row.get("profile_finance")),
             "cart_configs": _normalize_cart_configs(cc_raw) if isinstance(cc_raw, dict) else {},
+            "favorite_configs": _normalize_cart_configs(fc_raw) if isinstance(fc_raw, dict) else {},
             "updated_at": row.get("updated_at"),
         }
     return {"success": True, "data": payload, "state": payload}
@@ -1594,7 +2183,7 @@ def user_state_post(payload: dict[str, Any] = Body(...)):
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
             """
-            SELECT profile_finance, cart_configs FROM user_state WHERE telegram_id = %s
+            SELECT profile_finance, cart_configs, favorite_configs FROM user_state WHERE telegram_id = %s
             """,
             (tid,),
         )
@@ -1630,17 +2219,24 @@ def user_state_post(payload: dict[str, Any] = Body(...)):
             cc_prev = prev_row.get("cart_configs") if prev_row else None
             cart_configs = _normalize_cart_configs(cc_prev) if isinstance(cc_prev, dict) else {}
 
+        if "favorite_configs" in payload:
+            favorite_configs = _normalize_cart_configs(payload.get("favorite_configs"))
+        else:
+            fc_prev = prev_row.get("favorite_configs") if prev_row else None
+            favorite_configs = _normalize_cart_configs(fc_prev) if isinstance(fc_prev, dict) else {}
+
         cur.execute(
             """
-            INSERT INTO user_state (telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, updated_at)
-            VALUES (%s, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, NOW())
+            INSERT INTO user_state (telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, favorite_configs, updated_at)
+            VALUES (%s, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, NOW())
             ON CONFLICT (telegram_id) DO UPDATE SET
                 cart_items = EXCLUDED.cart_items,
                 favorite_ids = EXCLUDED.favorite_ids,
                 profile_finance = EXCLUDED.profile_finance,
                 cart_configs = EXCLUDED.cart_configs,
+                favorite_configs = EXCLUDED.favorite_configs,
                 updated_at = NOW()
-            RETURNING telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, updated_at
+            RETURNING telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, favorite_configs, updated_at
             """,
             (
                 tid,
@@ -1648,18 +2244,21 @@ def user_state_post(payload: dict[str, Any] = Body(...)):
                 json.dumps(favorite_ids, ensure_ascii=False),
                 json.dumps(profile_finance, ensure_ascii=False),
                 json.dumps(cart_configs, ensure_ascii=False),
+                json.dumps(favorite_configs, ensure_ascii=False),
             ),
         )
         row = cur.fetchone()
         conn.commit()
 
     cc_out = row.get("cart_configs")
+    fc_out = row.get("favorite_configs")
     state = {
         "telegram_id": int(row["telegram_id"]),
         "cart_items": _normalize_cart_items(row.get("cart_items")),
         "favorite_ids": _normalize_favorite_ids(row.get("favorite_ids")),
         "profile_finance": _normalize_profile_finance(row.get("profile_finance")),
         "cart_configs": _normalize_cart_configs(cc_out) if isinstance(cc_out, dict) else {},
+        "favorite_configs": _normalize_cart_configs(fc_out) if isinstance(fc_out, dict) else {},
         "updated_at": row.get("updated_at"),
     }
     return {"success": True, "data": state, "state": state, "message": "Состояние пользователя сохранено"}
@@ -1703,6 +2302,7 @@ def certificates_activate(payload: dict[str, Any] = Body(...)):
         pct = _certificate_discount_percent(cur, code)
         if pct is None:
             json_error("Код сертификата не найден или недействителен", 400)
+        _assert_promo_self_use(cur, code, tid)
         cur.execute(
             "SELECT 1 FROM certificate_redemptions WHERE telegram_id = %s AND code = %s",
             (tid, code),
@@ -1755,20 +2355,37 @@ def orders_get(
     id: Optional[int] = Query(default=None),
     admin: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None, description="Админ: YYYY-MM-DD, фильтр по дате создания"),
+    date_to: Optional[str] = Query(default=None, description="Админ: YYYY-MM-DD"),
 ):
     with db_conn() as conn, conn.cursor() as cur:
         if admin == "1" and id is None and user_id is None and telegram_id is None and phone is None:
             require_admin(request)
+            clauses: list[str] = []
+            params: list[Any] = []
+            if status:
+                clauses.append("o.order_status = %s")
+                params.append(status)
+            if date_from:
+                try:
+                    df = date.fromisoformat(date_from.strip())
+                except ValueError:
+                    json_error("Параметр date_from: ожидается YYYY-MM-DD", 400)
+                clauses.append("o.created_at::date >= %s")
+                params.append(df)
+            if date_to:
+                try:
+                    dt_to = date.fromisoformat(date_to.strip())
+                except ValueError:
+                    json_error("Параметр date_to: ожидается YYYY-MM-DD", 400)
+                clauses.append("o.created_at::date <= %s")
+                params.append(dt_to)
+            where_sql = (" WHERE " + " AND ".join(clauses)) if clauses else ""
             sql = """
                 SELECT o.*, u.phone as user_phone, u.full_name as user_name, u.username as user_username
                 FROM orders o
                 LEFT JOIN users u ON o.user_id = u.id
-            """
-            params: list[Any] = []
-            if status:
-                sql += " WHERE o.order_status = %s"
-                params.append(status)
-            sql += " ORDER BY o.created_at DESC"
+            """ + where_sql + " ORDER BY o.created_at DESC"
             cur.execute(sql, params)
             orders = cur.fetchall()
             for order in orders:
@@ -1919,6 +2536,22 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
     bonus_used = int(payload.get("bonus_used") or 0)
     bonus_earned = int(payload.get("bonus_earned") or 0)
 
+    raw_subtotal = payload.get("subtotal_amount")
+    subtotal_db: Optional[float] = None
+    if raw_subtotal is not None and str(raw_subtotal).strip() != "":
+        try:
+            subtotal_db = float(raw_subtotal)
+        except (TypeError, ValueError):
+            subtotal_db = None
+
+    raw_disc_pct = payload.get("discount_percent")
+    discount_percent_db: Optional[float] = None
+    if raw_disc_pct is not None and str(raw_disc_pct).strip() != "":
+        try:
+            discount_percent_db = float(raw_disc_pct)
+        except (TypeError, ValueError):
+            discount_percent_db = None
+
     if not items or not full_name or not phone or total_amount <= 0:
         json_error("Обязательные поля не заполнены", 400)
 
@@ -1942,8 +2575,7 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
     addr_out: Optional[str] = None
     if delivery_type == "delivery":
         addr_out = _validate_order_address(address)
-    elif address and str(address).strip():
-        addr_out = _validate_order_address(address)
+    # pickup: address в БД NULL (не подставляем фиктивный адрес под валидацию)
     if is_internal_balance or pm == "card":
         payment_status_init = "paid"
     elif pm == "cash":
@@ -1955,6 +2587,7 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
         if tid is not None and cert_code and discount_amount > 0:
             if _certificate_discount_percent(cur, cert_code) is None:
                 json_error("Некорректный код сертификата", 400)
+            _assert_promo_self_use(cur, cert_code, tid)
             cur.execute(
                 "SELECT 1 FROM certificate_redemptions WHERE telegram_id = %s AND code = %s",
                 (tid, cert_code),
@@ -1970,9 +2603,10 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
             """
             INSERT INTO orders (
                 user_id, order_number, delivery_type, full_name, phone, address, comment,
-                total_amount, payment_method, payment_status, customer_telegram_id, telegram_username
+                total_amount, payment_method, payment_status, customer_telegram_id, telegram_username,
+                subtotal_amount, discount_amount, discount_percent, bonus_used
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
@@ -1988,6 +2622,10 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
                 payment_status_init,
                 tid,
                 telegram_username,
+                subtotal_db,
+                discount_amount,
+                discount_percent_db,
+                bonus_used,
             ),
         )
         order_id = cur.fetchone()["id"]
@@ -2114,7 +2752,11 @@ def app_startup() -> None:
     ensure_users_is_staff_column()
     ensure_reviews_order_id_unique_index()
     ensure_orders_telegram_columns()
+    ensure_orders_pricing_metadata_columns()
     ensure_products_config_json_column()
+    ensure_products_image_blob_columns()
+    ensure_products_moderation_columns()
+    ensure_promo_codes_creator_column()
     normalize_legacy_products()
 
 

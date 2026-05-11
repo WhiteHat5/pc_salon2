@@ -101,8 +101,12 @@
                     <input type="text" id="promo-new-code" class="w-full p-2.5 rounded-xl uppercase" maxlength="64" autocomplete="off" placeholder="Например SUMMER10">
                 </div>
                 <div class="w-full sm:w-28">
-                    <label class="block text-xs mb-1">Скидка %</label>
-                    <input type="number" id="promo-new-pct" class="w-full p-2.5 rounded-xl" min="0.01" max="100" step="0.01" value="5">
+                    <label class="block text-xs mb-1">Скидка % <span id="promo-cap-hint" class="text-[#8b97ab] font-normal"></span></label>
+                    <input type="number" id="promo-new-pct" class="w-full p-2.5 rounded-xl" min="0.01" max="50" step="0.01" value="5">
+                </div>
+                <div id="promo-creator-wrap" class="hidden w-full sm:w-44">
+                    <label class="block text-xs mb-1">Ваш Telegram ID</label>
+                    <input type="text" id="promo-creator-tg" class="w-full p-2.5 rounded-xl" inputmode="numeric" placeholder="для менеджера" autocomplete="off">
                 </div>
                 <div class="flex items-center gap-2 pb-2">
                     <input type="checkbox" id="promo-new-active" checked class="w-4 h-4 rounded">
@@ -110,6 +114,7 @@
                 </div>
                 <button type="submit" class="admin-btn-ice"><i class="fas fa-plus"></i>Создать</button>
             </form>
+            <p id="promo-manager-note" class="hidden text-xs text-[#8b97ab] mt-2">Менеджер: скидка не выше 15%, свой промокод нельзя применить к себе. Telegram ID подставляется из мини-приложения, если открыли страницу из Telegram.</p>
         </div>
 
         <div class="admin-panel rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
@@ -179,6 +184,38 @@
         } catch (e) { return false; }
     }
     let allPromos = [];
+    let adminPromoRole = 'manager';
+    const PROMO_CAP = { super: 50, manager: 15 };
+    function promoPercentCap() {
+        return adminPromoRole === 'super' ? PROMO_CAP.super : PROMO_CAP.manager;
+    }
+    async function loadAdminPromoRole() {
+        try {
+            const r = await adminFetch(`${API_BASE_URL}/admin/session`, { headers: adminAuthHeaders() });
+            const d = await r.json().catch(() => ({}));
+            if (r.ok && d.role) adminPromoRole = d.role;
+        } catch (e) {}
+        applyPromoRoleUi();
+    }
+    function applyPromoRoleUi() {
+        const cap = promoPercentCap();
+        const pctEl = document.getElementById('promo-new-pct');
+        if (pctEl) {
+            pctEl.max = String(cap);
+            if (parseFloat(pctEl.value) > cap) pctEl.value = String(cap);
+        }
+        const hint = document.getElementById('promo-cap-hint');
+        if (hint) hint.textContent = adminPromoRole === 'super' ? '(макс. 50%)' : '(макс. 15%)';
+        const wrap = document.getElementById('promo-creator-wrap');
+        const note = document.getElementById('promo-manager-note');
+        if (wrap) wrap.classList.toggle('hidden', adminPromoRole !== 'manager');
+        if (note) note.classList.toggle('hidden', adminPromoRole !== 'manager');
+        try {
+            const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
+            const cr = document.getElementById('promo-creator-tg');
+            if (cr && u && u.id && !cr.value.trim()) cr.value = String(u.id);
+        } catch (e) {}
+    }
     function renderList() {
         const box = document.getElementById('promo-list');
         if (!allPromos.length) {
@@ -191,12 +228,12 @@
                 <div class="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
                     <div class="min-w-0 flex-1">
                         <div class="font-mono text-amber-200 font-bold text-lg">${esc(p.code)}</div>
-                        <div class="text-xs text-[#8b97ab] mt-1">id ${p.id} · обновл. ${esc(p.updated_at || '')}</div>
+                        <div class="text-xs text-[#8b97ab] mt-1">id ${p.id} · обновл. ${esc(p.updated_at || '')}${p.creator_telegram_id != null ? ` · создатель TG ${esc(p.creator_telegram_id)}` : ''}</div>
                         ${p.note ? `<div class="text-xs text-[#b8c4d4] mt-1">${esc(p.note)}</div>` : ''}
                     </div>
                     <div class="flex flex-wrap gap-2 items-center">
                         <label class="text-xs text-[#8ec8ff]">%</label>
-                        <input type="number" class="promo-pct w-24 p-2 rounded-xl text-sm" min="0.01" max="100" step="0.01" value="${esc(p.discount_percent)}" data-id="${p.id}">
+                        <input type="number" class="promo-pct w-24 p-2 rounded-xl text-sm" min="0.01" max="${promoPercentCap()}" step="0.01" value="${esc(p.discount_percent)}" data-id="${p.id}">
                         <label class="flex items-center gap-1 text-sm cursor-pointer">
                             <input type="checkbox" class="promo-active w-4 h-4" data-id="${p.id}" ${active ? 'checked' : ''}> Активен
                         </label>
@@ -213,8 +250,9 @@
                 const pctEl = row && row.querySelector('.promo-pct');
                 const actEl = row && row.querySelector('.promo-active');
                 const pct = parseFloat(pctEl && pctEl.value);
-                if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
-                    alert('Укажите процент от 0.01 до 100');
+                const cap = promoPercentCap();
+                if (!Number.isFinite(pct) || pct <= 0 || pct > cap + 1e-9) {
+                    alert('Укажите процент от 0.01 до ' + cap + ' для вашей роли');
                     return;
                 }
                 btn.disabled = true;
@@ -282,6 +320,7 @@
             if (await adminSessionOk()) {
                 loginEl.classList.add('hidden');
                 appEl.classList.remove('hidden');
+                await loadAdminPromoRole();
                 await loadPromos();
             }
         })();
@@ -319,13 +358,20 @@
             const code = document.getElementById('promo-new-code').value.trim();
             const pct = parseFloat(document.getElementById('promo-new-pct').value);
             const is_active = document.getElementById('promo-new-active').checked;
+            const cap = promoPercentCap();
             if (!code) { alert('Введите код'); return; }
-            if (!Number.isFinite(pct) || pct <= 0 || pct > 100) { alert('Процент 0.01–100'); return; }
+            if (!Number.isFinite(pct) || pct <= 0 || pct > cap + 1e-9) { alert('Процент от 0.01 до ' + cap + ' для вашей роли'); return; }
+            const payload = { code: code.toUpperCase(), discount_percent: pct, is_active };
+            if (adminPromoRole === 'manager') {
+                const ct = parseInt(String(document.getElementById('promo-creator-tg') && document.getElementById('promo-creator-tg').value || '').trim(), 10);
+                if (!Number.isFinite(ct)) { alert('Укажите ваш Telegram ID (нужен для защиты от самоприменения промокода)'); return; }
+                payload.creator_telegram_id = ct;
+            }
             try {
                 const r = await adminFetch(`${API_BASE_URL}/admin/promo-codes`, {
                     method: 'POST',
                     headers: mergeH({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
-                    body: JSON.stringify({ code: code.toUpperCase(), discount_percent: pct, is_active })
+                    body: JSON.stringify(payload)
                 });
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(d.error || 'Ошибка');

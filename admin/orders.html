@@ -171,19 +171,57 @@
 
         <!-- Фильтры -->
         <div class="admin-panel rounded-xl p-4 mb-6">
-            <div class="flex flex-wrap gap-4 items-center">
-                <label class="text-sm font-medium text-[#8ec8ff]">Фильтр по статусу:</label>
-                <select id="status-filter" class="p-2.5 rounded-xl min-w-[11rem]">
-                    <option value="">Все заказы</option>
-                    <option value="new">Новые</option>
-                    <option value="processing">В обработке</option>
-                    <option value="confirmed">Подтверждены</option>
-                    <option value="shipped">Отправлены</option>
-                    <option value="delivered">Доставлены</option>
-                    <option value="cancelled">Отменены</option>
-                </select>
-                <button type="button" id="refresh-orders" class="admin-btn-muted">
-                    <i class="fas fa-sync-alt"></i>Обновить
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <label class="text-sm font-medium text-[#8ec8ff]">Фильтр по статусу:</label>
+                    <select id="status-filter" class="p-2.5 rounded-xl min-w-[11rem]">
+                        <option value="">Все заказы</option>
+                        <option value="new">Новые</option>
+                        <option value="processing">В обработке</option>
+                        <option value="confirmed">Подтверждены</option>
+                        <option value="shipped">Отправлены</option>
+                        <option value="delivered">Доставлены</option>
+                        <option value="cancelled">Отменены</option>
+                    </select>
+                    <button type="button" id="refresh-orders" class="admin-btn-muted">
+                        <i class="fas fa-sync-alt"></i>Обновить
+                    </button>
+                    <button type="button" id="export-orders-xlsx" class="admin-btn-ice" title="Сохранить текущий список (с учётом фильтров) в Excel (.xlsx)">
+                        <i class="fas fa-file-excel"></i>В Excel (.xlsx)
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label for="orders-date-from" class="block text-xs font-medium mb-1 text-[#b8c4d4]">Дата создания с</label>
+                        <input type="date" id="orders-date-from" class="p-2.5 rounded-xl min-w-[11rem]">
+                    </div>
+                    <div>
+                        <label for="orders-date-to" class="block text-xs font-medium mb-1 text-[#b8c4d4]">по</label>
+                        <input type="date" id="orders-date-to" class="p-2.5 rounded-xl min-w-[11rem]">
+                    </div>
+                    <button type="button" id="orders-date-today" class="admin-btn-muted text-sm py-2 px-3 rounded-xl">Сегодня</button>
+                    <button type="button" id="orders-date-yesterday" class="admin-btn-muted text-sm py-2 px-3 rounded-xl">Вчера</button>
+                    <button type="button" id="orders-date-clear" class="admin-btn-muted text-sm py-2 px-3 rounded-xl">Сбросить даты</button>
+                    <p class="text-xs text-[#8b97ab] w-full sm:w-auto sm:flex-1 sm:min-w-[12rem]">Пустые поля — без ограничения по дате. Для одного дня укажите одну и ту же дату в обоих полях или нажмите «Сегодня» / «Вчера».</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="finance-reset-panel" class="admin-panel rounded-xl p-4 mb-6 hidden">
+            <h3 class="text-base font-semibold text-[#8ec8ff] mb-1">
+                <i class="fas fa-undo-alt mr-2"></i>Сброс промокода и бонусов
+            </h3>
+            <p class="text-xs text-[#b8c4d4] mb-3 max-w-3xl">
+                Для указанного Telegram ID: снимается ожидающая активация сертификата, в профиле мини-приложения обнуляются бонусы и персональная скидка.
+                Внутренний баланс и история пополнений не затрагиваются.
+            </p>
+            <div class="flex flex-wrap gap-3 items-end">
+                <div>
+                    <label for="finance-reset-telegram-id" class="block text-xs font-medium mb-1 text-[#b8c4d4]">Telegram ID</label>
+                    <input type="text" id="finance-reset-telegram-id" class="p-2.5 rounded-xl min-w-[12rem]" inputmode="numeric" placeholder="например 123456789" autocomplete="off">
+                </div>
+                <button type="button" id="finance-reset-btn" class="admin-btn-danger text-sm py-2.5 px-4 rounded-xl">
+                    <i class="fas fa-broom mr-2"></i>Обнулить
                 </button>
             </div>
         </div>
@@ -218,6 +256,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         // Определяем путь к API (python-first)
         const API_BASE_URL = (() => {
@@ -274,6 +313,14 @@
             try { sessionStorage.setItem('aurum_return_from_admin', '1'); } catch (e) {}
             window.location.href = resolveMiniAppEntryUrl();
         }
+        function aurumAdminTelegramBackStep() {
+            const om = document.getElementById('order-modal');
+            if (om && !om.classList.contains('hidden')) {
+                if (window.closeOrderModal) window.closeOrderModal();
+                return;
+            }
+            aurumGoBackToMiniApp();
+        }
         function aurumSetupAdminTelegramBack() {
             document.querySelectorAll('.admin-fallback-shop').forEach(el => {
                 el.addEventListener('click', (e) => { e.preventDefault(); aurumGoBackToMiniApp(); });
@@ -290,7 +337,10 @@
             try { if (tg.setHeaderColor) tg.setHeaderColor(hdr); } catch (e) {}
             try { if (tg.setBackgroundColor) tg.setBackgroundColor(bg); } catch (e) {}
             tg.BackButton.show();
-            tg.BackButton.onClick(aurumGoBackToMiniApp);
+            try {
+                if (typeof tg.BackButton.offClick === 'function') tg.BackButton.offClick();
+            } catch (e) {}
+            tg.BackButton.onClick(aurumAdminTelegramBackStep);
         }
         async function adminSessionOk() {
             const t = sessionStorage.getItem(ADMIN_TOKEN_KEY);
@@ -300,6 +350,19 @@
                 return r.ok;
             } catch (e) {
                 return false;
+            }
+        }
+        async function aurumOrdersApplyFinancePanelVisibility() {
+            const panel = document.getElementById('finance-reset-panel');
+            if (!panel) return;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/session`, { headers: adminAuthHeaders() });
+                const d = await r.json().catch(() => ({}));
+                const role = (d && d.role) ? d.role : '';
+                try { sessionStorage.setItem('aurum_admin_role', role); } catch (e) {}
+                panel.classList.toggle('hidden', role !== 'super');
+            } catch (e) {
+                panel.classList.add('hidden');
             }
         }
         function onAdminUnauthorized() {
@@ -321,6 +384,7 @@
                 if (await adminSessionOk()) {
                     loginEl.classList.add('hidden');
                     appEl.classList.remove('hidden');
+                    await aurumOrdersApplyFinancePanelVisibility();
                     loadOrders();
                 }
             })();
@@ -352,7 +416,6 @@
 
             const orderModal = document.getElementById('order-modal');
             if (orderModal) {
-                orderModal.addEventListener('click', () => { if (window.closeOrderModal) window.closeOrderModal(); });
                 const orderPanel = orderModal.querySelector('.admin-glass-card');
                 if (orderPanel) orderPanel.addEventListener('click', (ev) => ev.stopPropagation());
             }
@@ -377,6 +440,254 @@
             paid: 'Оплачен',
             failed: 'Ошибка оплаты'
         };
+
+        function aurumUint8ToBase64(u8) {
+            const CHUNK = 0x8000;
+            let binary = '';
+            for (let i = 0; i < u8.length; i += CHUNK) {
+                binary += String.fromCharCode.apply(null, u8.subarray(i, Math.min(i + CHUNK, u8.length)));
+            }
+            return btoa(binary);
+        }
+
+        /** Telegram Android: blob+«Скачать» в WebView часто молча не пишет файл. Регистрируем на сервере и вызываем WebApp.downloadFile(https). */
+        async function aurumTryTelegramNativeDownload(blob, filename) {
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (!tg) return false;
+            let b64;
+            try {
+                b64 = aurumUint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
+            } catch (e) {
+                return false;
+            }
+            let reg;
+            try {
+                const r = await adminFetch(`${API_BASE_URL}/admin/export-register`, {
+                    method: 'POST',
+                    headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                    body: JSON.stringify({ content_base64: b64, filename: filename }),
+                });
+                reg = await r.json().catch(() => ({}));
+                if (!r.ok || !reg.success || !reg.url) return false;
+            } catch (e) {
+                return false;
+            }
+            const url = String(reg.url);
+            const fn = String(reg.filename || filename);
+            if (typeof tg.downloadFile === 'function' && (url.startsWith('https://') || url.startsWith('http://'))) {
+                const ok = await new Promise((resolve) => {
+                    try {
+                        tg.downloadFile({ url: url, file_name: fn }, (s) => resolve(!!s));
+                    } catch (e2) {
+                        resolve(false);
+                    }
+                });
+                if (ok) return true;
+            }
+            if (typeof tg.openLink === 'function' && url.startsWith('http')) {
+                try {
+                    tg.openLink(url);
+                    return true;
+                } catch (e3) {}
+            }
+            return false;
+        }
+
+        /** Excel .xlsx: в Telegram — нативная загрузка по HTTPS; иначе Share / Save-as / ссылка (без ложного «успеха» в TG Android). */
+        async function aurumAdminDownloadXlsx(filename, sheetName, headers, rows) {
+            try {
+                if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.write) {
+                    return { ok: false, lib: true };
+                }
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+                const sn = String(sheetName || 'Лист1').replace(/[:\\/?*[\]]/g, '').slice(0, 31) || 'Export';
+                XLSX.utils.book_append_sheet(wb, ws, sn);
+                const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                let name = String(filename || 'export').replace(/\.(csv|xlsx)$/i, '') + '.xlsx';
+
+                const ua = navigator.userAgent || '';
+                const isIOS = /iPhone|iPad|iPod/i.test(ua);
+                const isAndroid = /Android/i.test(ua);
+                const inTg = typeof window.Telegram !== 'undefined' && window.Telegram && window.Telegram.WebApp;
+                /* Нативный downloadFile только Android в TG: там blob не пишется; iOS/ПК — прежняя цепочка Share/ссылка. */
+                const useTgNativeFileDownload = !!(inTg && isAndroid);
+                if (useTgNativeFileDownload && (await aurumTryTelegramNativeDownload(blob, name))) {
+                    return { ok: true, via: 'telegram' };
+                }
+
+                async function tryShareOnce() {
+                    if (!navigator.share || !navigator.canShare) return false;
+                    try {
+                        const file = new File([blob], name, { type: blob.type });
+                        if (!navigator.canShare({ files: [file] })) return false;
+                        await navigator.share({ files: [file], title: name, text: 'Таблица AURUM' });
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                async function trySavePicker() {
+                    if (typeof window.showSaveFilePicker !== 'function') return false;
+                    if (isAndroid && inTg) return false;
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: name,
+                            types: [{
+                                description: 'Excel (.xlsx)',
+                                accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+                            }],
+                        });
+                        const w = await handle.createWritable();
+                        await w.write(blob);
+                        await w.close();
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                function tryAnchorDownload() {
+                    if (isIOS) return false;
+                    if (inTg && isAndroid) return false;
+                    try {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name;
+                        a.rel = 'noopener';
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                        if (typeof a.click === 'function') a.click();
+                        setTimeout(() => {
+                            URL.revokeObjectURL(url);
+                            a.remove();
+                        }, 2800);
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                const shareFirst = isAndroid || isIOS || !!inTg;
+                if (shareFirst && (await tryShareOnce())) {
+                    return { ok: true, via: 'share' };
+                }
+                if (await trySavePicker()) {
+                    return { ok: true, via: 'picker' };
+                }
+                if (!shareFirst && (await tryShareOnce())) {
+                    return { ok: true, via: 'share' };
+                }
+                if (tryAnchorDownload()) {
+                    return { ok: true, via: 'download', hintDownloads: isAndroid };
+                }
+
+                if (inTg) {
+                    try {
+                        window.Telegram.WebApp.showAlert(
+                            'Выгрузка недоступна: нужен HTTPS у API (например ngrok) для Telegram, либо откройте админку в браузере (⋮ → «Открыть в браузере»).'
+                        );
+                    } catch (e2) {}
+                    return { ok: false, blocked: true };
+                }
+                return { ok: false, blocked: false };
+            } catch (e) {
+                return { ok: false, error: String(e && e.message ? e.message : e) };
+            }
+        }
+
+        function ordersDateIsoLocal(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function appendOrdersDateParams(url) {
+            const dfEl = document.getElementById('orders-date-from');
+            const dtEl = document.getElementById('orders-date-to');
+            const df = dfEl && dfEl.value ? dfEl.value.trim() : '';
+            const dt = dtEl && dtEl.value ? dtEl.value.trim() : '';
+            if (df) url += `&date_from=${encodeURIComponent(df)}`;
+            if (dt) url += `&date_to=${encodeURIComponent(dt)}`;
+            return url;
+        }
+
+        async function exportCurrentOrdersCsv() {
+            if (!currentOrders.length) {
+                showMessage('Нет заказов для выгрузки (обновите список или снимите фильтры).', true);
+                return;
+            }
+            const dfEl = document.getElementById('orders-date-from');
+            const dtEl = document.getElementById('orders-date-to');
+            const df = dfEl && dfEl.value ? dfEl.value.trim() : '';
+            const dt = dtEl && dtEl.value ? dtEl.value.trim() : '';
+            const fname =
+                'aurum_orders_' +
+                ordersDateIsoLocal(new Date()) +
+                '_' +
+                (df || 'nodate') +
+                '_' +
+                (dt || 'nodate') +
+                '_' +
+                currentOrders.length +
+                'rows';
+
+            const headers = [
+                'id', 'Номер', 'Создан (ISO)', 'Статус', 'Оплата', 'ФИО', 'Телефон', 'Telegram', 'Сумма', 'Доставка', 'Адрес', 'Позиции'
+            ];
+            const rows = currentOrders.map((o) => {
+                const un = (o.telegram_username || o.user_username || '').toString().replace(/^@/, '').trim();
+                const tid = o.customer_telegram_id;
+                let tg = '';
+                if (un) tg = '@' + un;
+                else if (tid != null && tid !== '') tg = 'id:' + String(tid);
+                const items = Array.isArray(o.items) ? o.items : [];
+                const pos = items.map((it) => {
+                    const n = (it.item_name || '').replace(/\s+/g, ' ').trim();
+                    const q = it.quantity || 1;
+                    return n + ' ×' + q;
+                }).join('; ');
+                return [
+                    o.id,
+                    o.order_number || '',
+                    o.created_at || '',
+                    ORDER_STATUS_LABELS[o.order_status] || o.order_status || '',
+                    PAYMENT_STATUS_LABELS[o.payment_status] || o.payment_status || '',
+                    o.full_name || o.user_name || '',
+                    o.phone || o.user_phone || '',
+                    tg,
+                    String(parseFloat(o.total_amount || 0).toFixed(2)).replace('.', ','),
+                    o.delivery_type === 'delivery' ? 'Доставка' : 'Самовывоз',
+                    o.address || '',
+                    pos,
+                ];
+            });
+            const dl = await aurumAdminDownloadXlsx(fname, 'Заказы', headers, rows);
+            if (dl && dl.blocked) return;
+            if (dl && dl.lib) {
+                showMessage('Не загружена библиотека Excel. Обновите страницу.', true);
+                return;
+            }
+            if (dl && dl.error) {
+                showMessage('Ошибка выгрузки: ' + dl.error, true);
+                return;
+            }
+            if (!dl || !dl.ok) {
+                showMessage('Не удалось сохранить файл. Попробуйте открыть страницу в браузере Chrome.', true);
+                return;
+            }
+            let msg = 'Выгрузка прошла успешно!';
+            if (dl.via === 'telegram') msg = 'Подтвердите загрузку в окне Telegram, затем откройте «Загрузки» или «Файлы».';
+            else if (dl.via === 'picker') msg = 'Файл сохранён в выбранное место.';
+            else if (dl.via === 'share') msg = 'Выберите приложение или папку в меню «Поделиться».';
+            else if (dl.hintDownloads) msg = 'Файл .xlsx сохранён. Откройте папку «Загрузки» или приложение «Файлы».';
+            showMessage(msg);
+        }
 
         function adminPaymentMethodLabel(order) {
             const c = order.comment || '';
@@ -424,7 +735,8 @@
                 if (statusFilter) {
                     url += `&status=${encodeURIComponent(statusFilter)}`;
                 }
-                
+                url = appendOrdersDateParams(url);
+
                 const response = await adminFetch(url, { headers: adminAuthHeaders() });
                 if (response.status === 401) { onAdminUnauthorized(); return; }
                 const contentType = response.headers.get('content-type');
@@ -532,6 +844,20 @@
         }
 
         // Просмотр заказа
+        function aurumAdminSetOrderModalScrollLock(on) {
+            if (on) {
+                document.body.dataset.aurumAdminOverflow = document.body.style.overflow || '';
+                document.documentElement.dataset.aurumAdminOverflow = document.documentElement.style.overflow || '';
+                document.body.style.overflow = 'hidden';
+                document.documentElement.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = document.body.dataset.aurumAdminOverflow || '';
+                document.documentElement.style.overflow = document.documentElement.dataset.aurumAdminOverflow || '';
+                delete document.body.dataset.aurumAdminOverflow;
+                delete document.documentElement.dataset.aurumAdminOverflow;
+            }
+        }
+
         window.viewOrder = async function(id) {
             try {
                 const response = await adminFetch(`${API_BASE_URL}/orders?id=${id}`, { headers: adminAuthHeaders() });
@@ -548,12 +874,86 @@
                 
                 document.getElementById('order-modal').classList.remove('hidden');
                 document.getElementById('order-modal').classList.add('flex');
+                aurumAdminSetOrderModalScrollLock(true);
             } catch (error) {
                 console.error('Ошибка загрузки заказа:', error);
                 const msg = (error && error.name === 'AbortError') ? 'Таймаут ответа сервера' : (error && error.message);
                 showMessage('Ошибка: ' + msg, true);
             }
         };
+
+        function adminFormatConfigOptionLabel(val) {
+            if (val == null || val === '') return '';
+            if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+            if (typeof val === 'object') {
+                if (val.name != null) return String(val.name);
+                if (val.label != null) return String(val.label);
+                if (val.title != null) return String(val.title);
+            }
+            return '';
+        }
+
+        function adminPickSelectedFromOptionGroup(raw) {
+            if (raw == null) return '';
+            if (Array.isArray(raw)) {
+                const sel = raw.find((x) => x && x.selected === true);
+                const one = sel || raw[0];
+                return adminFormatConfigOptionLabel(one);
+            }
+            return adminFormatConfigOptionLabel(raw);
+        }
+
+        function adminOrderItemConfigSummaryFromData(config) {
+            if (!config || typeof config !== 'object') return '';
+            const parts = [];
+            const keys = [['cpu', 'CPU'], ['gpu', 'GPU'], ['ssd', 'SSD'], ['warranty', 'Гарантия']];
+            for (const [key, ru] of keys) {
+                let block = config[key];
+                if (block == null && config.options && typeof config.options === 'object') {
+                    block = config.options[key];
+                }
+                const label = adminPickSelectedFromOptionGroup(block);
+                if (label) parts.push(ru + ': ' + label);
+            }
+            return parts.length ? parts.join(' | ') : '';
+        }
+
+        function adminOrderPricingExtraHtml(order) {
+            const subRaw = order.subtotal_amount;
+            const sub = subRaw != null && subRaw !== '' ? parseFloat(subRaw) : NaN;
+            const disc = parseFloat(order.discount_amount || 0) || 0;
+            const pctRaw = order.discount_percent;
+            const pct = pctRaw != null && pctRaw !== '' ? parseFloat(pctRaw) : NaN;
+            const bonus = parseInt(order.bonus_used || 0, 10) || 0;
+            const total = parseFloat(order.total_amount || 0) || 0;
+            const lines = [];
+            if (!Number.isNaN(sub) && sub > 0) {
+                lines.push(`<div class="flex justify-between gap-2"><span class="text-[#b8c4d4]">Сумма по товарам</span><span class="text-[#f2ebe1]">${sub.toLocaleString('ru-RU')} ₽</span></div>`);
+            }
+            if (disc > 0) {
+                let dlabel = 'Скидка';
+                if (!Number.isNaN(pct) && pct > 0) dlabel += ` (${pct}%)`;
+                lines.push(`<div class="flex justify-between gap-2"><span class="text-amber-200/90">${dlabel}</span><span class="text-amber-200/90">−${disc.toLocaleString('ru-RU')} ₽</span></div>`);
+            } else if (!Number.isNaN(pct) && pct > 0 && total > 0) {
+                lines.push(`<div class="flex justify-between gap-2"><span class="text-[#b8c4d4]">Персональная скидка</span><span class="text-[#f2ebe1]">${pct}%</span></div>`);
+            }
+            if (bonus > 0) {
+                lines.push(`<div class="flex justify-between gap-2"><span class="text-emerald-200/80">Списано бонусов</span><span class="text-emerald-200/80">−${bonus.toLocaleString('ru-RU')} ₽</span></div>`);
+            }
+            if (!lines.length) return '';
+            lines.push(`<div class="flex justify-between gap-2 pt-2 border-t border-white/10 mt-2"><span class="text-[#8ec8ff] font-medium">Итого к оплате</span><span class="text-[#8ec8ff] font-bold">${total.toLocaleString('ru-RU')} ₽</span></div>`);
+            return `<div class="md:col-span-2"><label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Расчёт суммы</label><div class="space-y-2 rounded-xl admin-readonly-box--soft p-4">${lines.join('')}</div></div>`;
+        }
+
+        function adminOrderPricingBlockHtml(order) {
+            const extra = adminOrderPricingExtraHtml(order);
+            if (extra) return extra;
+            return `
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Общая сумма</label>
+                            <div class="admin-readonly-box text-[#8ec8ff] font-bold text-xl">${parseFloat(order.total_amount || 0).toLocaleString('ru-RU')} ₽</div>
+                        </div>`;
+        }
 
         // Отображение деталей заказа
         function renderOrderDetails(order) {
@@ -585,13 +985,9 @@
                 if (item.config_data) {
                     try {
                         const config = typeof item.config_data === 'string' ? JSON.parse(item.config_data) : item.config_data;
-                        const configParts = [];
-                        if (config.cpu) configParts.push(`CPU: ${config.cpu}`);
-                        if (config.gpu) configParts.push(`GPU: ${config.gpu}`);
-                        if (config.ssd) configParts.push(`SSD: ${config.ssd}`);
-                        if (config.warranty) configParts.push(`Гарантия: ${config.warranty}`);
-                        if (configParts.length > 0) {
-                            specs += `<div class="text-sm text-[#b8c4d4] mt-1">${configParts.join(' | ')}</div>`;
+                        const summary = adminOrderItemConfigSummaryFromData(config);
+                        if (summary) {
+                            specs += `<div class="text-sm text-[#b8c4d4] mt-1">${summary}</div>`;
                         }
                     } catch (e) {
                         console.error('Error parsing config_data:', e);
@@ -683,10 +1079,7 @@
                             <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Дата создания</label>
                             <div class="admin-readonly-box">${orderDate}</div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-2 text-[#8ec8ff]">Общая сумма</label>
-                            <div class="admin-readonly-box text-[#8ec8ff] font-bold text-xl">${parseFloat(order.total_amount || 0).toLocaleString('ru-RU')} ₽</div>
-                        </div>
+                        ${adminOrderPricingBlockHtml(order)}
                     </div>
                     ${order.comment ? `
                     <div>
@@ -709,6 +1102,7 @@
         window.closeOrderModal = function() {
             document.getElementById('order-modal').classList.add('hidden');
             document.getElementById('order-modal').classList.remove('flex');
+            aurumAdminSetOrderModalScrollLock(false);
         };
 
         // Обновление статуса заказа
@@ -806,6 +1200,78 @@
         document.getElementById('status-filter').addEventListener('change', (e) => {
             loadOrders(e.target.value);
         });
+
+        const ordersDateFromEl = document.getElementById('orders-date-from');
+        const ordersDateToEl = document.getElementById('orders-date-to');
+        function reloadOrdersWithCurrentFilters() {
+            loadOrders(document.getElementById('status-filter').value);
+        }
+        if (ordersDateFromEl) ordersDateFromEl.addEventListener('change', reloadOrdersWithCurrentFilters);
+        if (ordersDateToEl) ordersDateToEl.addEventListener('change', reloadOrdersWithCurrentFilters);
+
+        const ordersDateTodayBtn = document.getElementById('orders-date-today');
+        if (ordersDateTodayBtn) {
+            ordersDateTodayBtn.addEventListener('click', () => {
+                const t = ordersDateIsoLocal(new Date());
+                if (ordersDateFromEl) ordersDateFromEl.value = t;
+                if (ordersDateToEl) ordersDateToEl.value = t;
+                reloadOrdersWithCurrentFilters();
+            });
+        }
+        const ordersDateYesterdayBtn = document.getElementById('orders-date-yesterday');
+        if (ordersDateYesterdayBtn) {
+            ordersDateYesterdayBtn.addEventListener('click', () => {
+                const d = new Date();
+                d.setDate(d.getDate() - 1);
+                const t = ordersDateIsoLocal(d);
+                if (ordersDateFromEl) ordersDateFromEl.value = t;
+                if (ordersDateToEl) ordersDateToEl.value = t;
+                reloadOrdersWithCurrentFilters();
+            });
+        }
+        const ordersDateClearBtn = document.getElementById('orders-date-clear');
+        if (ordersDateClearBtn) {
+            ordersDateClearBtn.addEventListener('click', () => {
+                if (ordersDateFromEl) ordersDateFromEl.value = '';
+                if (ordersDateToEl) ordersDateToEl.value = '';
+                reloadOrdersWithCurrentFilters();
+            });
+        }
+
+        const exportOrdersBtn = document.getElementById('export-orders-xlsx');
+        if (exportOrdersBtn) exportOrdersBtn.addEventListener('click', () => exportCurrentOrdersCsv());
+
+        const financeResetBtn = document.getElementById('finance-reset-btn');
+        if (financeResetBtn) {
+            financeResetBtn.addEventListener('click', async () => {
+                const inp = document.getElementById('finance-reset-telegram-id');
+                const tid = parseInt(String(inp && inp.value || '').trim(), 10);
+                if (!Number.isFinite(tid)) {
+                    showMessage('Укажите числовой Telegram ID', true);
+                    return;
+                }
+                if (!confirm('Обнулить ожидающий промокод, бонусы и персональную скидку для этого пользователя?')) return;
+                financeResetBtn.disabled = true;
+                try {
+                    const r = await adminFetch(`${API_BASE_URL}/admin/user-finance-reset`, {
+                        method: 'POST',
+                        headers: mergeHeaders({ 'Content-Type': 'application/json' }, adminAuthHeaders()),
+                        body: JSON.stringify({ telegram_id: tid }),
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (!r.ok) {
+                        showMessage((d && d.error) ? d.error : 'Ошибка запроса', true);
+                        return;
+                    }
+                    showMessage((d && d.message) ? d.message : 'Готово');
+                    if (inp) inp.value = '';
+                } catch (e) {
+                    showMessage('Ошибка сети', true);
+                } finally {
+                    financeResetBtn.disabled = false;
+                }
+            });
+        }
 
         // Обновление списка
         document.getElementById('refresh-orders').addEventListener('click', () => {

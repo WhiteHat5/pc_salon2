@@ -380,11 +380,11 @@
 
     /* Шаг 3: корзина, избранное, внутренние экраны, конфигуратор, модалки */
     .from-amber-600.to-yellow-600 {
-      background-image: linear-gradient(to right, #3d7eb8, #6eb0f0, #c8b8a8) !important;
+      background-image: linear-gradient(to right, #3d7eb8, #6eb0f0, #b0cce8) !important;
       color: #080c14 !important;
     }
     .from-amber-600.to-yellow-600:hover {
-      background-image: linear-gradient(to right, #4588c4, #7ab8f8, #d4c8b8) !important;
+      background-image: linear-gradient(to right, #4588c4, #7ab8f8, #c4daf0) !important;
       filter: brightness(1.05);
     }
     #cart #cart-items > div {
@@ -963,6 +963,23 @@
     #app main textarea::placeholder {
       color: rgba(184, 196, 212, 0.42) !important;
     }
+    /* Сортировка/фильтр: вне <main>, без янтарного placeholder (бело-золото / серебро / голубой) */
+    #filter-modal input::placeholder,
+    #sort-modal input::placeholder {
+      color: rgba(184, 196, 220, 0.58) !important;
+    }
+    #filter-modal input[type="number"],
+    #filter-modal input[type="search"],
+    #sort-modal input[type="search"],
+    #sort-modal input[type="text"] {
+      color: rgba(242, 235, 225, 0.96) !important;
+    }
+    #filter-modal button.text-amber-400:hover,
+    #sort-modal button.text-amber-400:hover,
+    #filter-modal button.hover\:text-amber-300:hover,
+    #sort-modal button.hover\:text-amber-300:hover {
+      color: #8ec8ff !important;
+    }
     /* Фокус полей: см. шаг 8 (единое кольцо + сброс Tailwind ring) */
 
     /* Шаг 7: финиш — safe-area, подтверждение удаления из корзины, ссылки в документах */
@@ -1085,7 +1102,7 @@
       backdrop-filter: blur(8px);
     }
     body.aurum-premium-shell .bg-gradient-to-r.from-amber-600.to-yellow-600:hover {
-      background-image: linear-gradient(to right, #4588c4, #7ab8f8, #d4c8b8) !important;
+      background-image: linear-gradient(to right, #4588c4, #7ab8f8, #c4daf0) !important;
       filter: brightness(1.05);
     }
     #sort-modal input[type="radio"].text-amber-600,
@@ -1295,6 +1312,9 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
+    body.aurum-category-sheet-open {
+      overflow: hidden !important;
+    }
     #profile #profile-avatar-img:not(.hidden) {
       box-shadow: 0 0 0 1px rgba(142, 200, 255, 0.28), 0 8px 24px rgba(0, 0, 0, 0.35);
     }
@@ -1386,7 +1406,7 @@
   <header class="aurum-premium-search sticky top-0 z-40 w-full max-w-full min-w-0 overflow-x-hidden p-2">
     <form id="search-form" class="max-w-2xl mx-auto flex items-center gap-2">
       <div class="relative flex-1 min-w-0">
-      <input id="search" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400 text-sm" />
+      <input id="search" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/60 text-slate-100 text-sm" />
       <i class="fas fa-search absolute left-3 top-2 text-amber-400 text-sm"></i>
     </div>
       <button id="search-submit" type="submit" class="px-4 py-2 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 text-amber-300 hover:text-amber-200 hover:bg-slate-700 transition text-sm font-semibold whitespace-nowrap">
@@ -1446,22 +1466,22 @@
           </div>
           <div class="flex-1 min-w-0 pt-0.5">
             <p id="profile-display-name" class="text-lg font-semibold text-amber-200 leading-tight truncate">Пользователь</p>
-            <div class="mt-3 space-y-1.5 text-[15px] leading-snug text-amber-50">
-              <p class="truncate">
-                <span class="text-amber-200/80">Баланс:</span>
-                <span id="profile-balance" class="font-medium text-amber-100 ml-1">0 ₽</span>
-              </p>
-              <p class="truncate">
-                <span class="text-amber-200/80">Бонусы:</span>
-                <span id="profile-bonuses" class="font-medium text-amber-100 ml-1">0</span><span class="ml-0.5" aria-hidden="true">✨</span>
-              </p>
-              <p class="truncate">
-                <span class="text-amber-200/80">Персональная скидка:</span>
-                <span id="profile-discount" class="font-medium text-amber-100 ml-1">0%</span>
-              </p>
+            <div class="mt-3 space-y-1.5 text-[15px] leading-snug text-amber-50 min-w-0">
+              <div class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span class="text-amber-200/80 shrink-0">Баланс:</span>
+                <span id="profile-balance" class="font-medium text-amber-100 tabular-nums min-w-0 break-words">0 ₽</span>
+              </div>
+              <div class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span class="text-amber-200/80 shrink-0">Бонусы:</span>
+                <span id="profile-bonuses" class="font-medium text-amber-100 tabular-nums min-w-0">0</span><span class="ml-0.5 shrink-0" aria-hidden="true">✨</span>
+              </div>
+              <div class="min-w-0 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                <span class="text-amber-200/80 shrink-0">Персональная скидка:</span>
+                <span id="profile-discount" class="font-medium text-amber-100 tabular-nums min-w-0 whitespace-nowrap">0%</span>
+              </div>
+            </div>
           </div>
         </div>
-            </div>
 
         <!-- Основное меню: один блок с разделителями -->
         <div class="profile-surface rounded-xl overflow-hidden mb-4 divide-y divide-amber-800/25">
@@ -1937,7 +1957,7 @@
       <div class="mb-6 flex items-center gap-3">
         <!-- Поиск -->
         <div class="flex-1 relative">
-          <input id="search-4k" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400 text-sm" />
+          <input id="search-4k" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/60 text-slate-100 text-sm" />
           <i class="fas fa-search absolute left-3 top-2.5 text-amber-400 text-sm"></i>
         </div>
         
@@ -1969,7 +1989,7 @@
       <div class="mb-6 flex items-center gap-3">
         <!-- Поиск -->
         <div class="flex-1 relative">
-          <input id="search-2k" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400 text-sm" />
+          <input id="search-2k" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/60 text-slate-100 text-sm" />
           <i class="fas fa-search absolute left-3 top-2.5 text-amber-400 text-sm"></i>
         </div>
         
@@ -2001,7 +2021,7 @@
       <div class="mb-6 flex items-center gap-3">
         <!-- Поиск -->
         <div class="flex-1 relative">
-          <input id="search-fullhd" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400 text-sm" />
+          <input id="search-fullhd" type="search" placeholder="Найти..." class="w-full p-2 pl-10 rounded-xl bg-slate-800 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/60 text-slate-100 text-sm" />
           <i class="fas fa-search absolute left-3 top-2.5 text-amber-400 text-sm"></i>
         </div>
         
@@ -2025,78 +2045,6 @@
       <div id="configurator-content" class="max-w-2xl mx-auto"></div>
     </section>
 
-    <!-- Модальное окно сортировки -->
-    <div id="sort-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden">
-      <div class="bg-slate-800 rounded-t-2xl p-6 w-full absolute bottom-0 left-0 right-0 border-t border-amber-700 max-h-[70vh] overflow-y-auto transform translate-y-full transition-transform duration-300" style="padding-bottom: 6rem;">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-xl font-bold text-amber-400">Сортировка</h3>
-          <button id="close-sort-modal" class="text-amber-400 hover:text-amber-300 transition">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-        <div class="space-y-3 mb-6">
-          <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
-            <input type="radio" name="sort" value="price-asc" class="w-4 h-4 text-amber-600">
-            <span class="text-white">Сначала подешевле</span>
-          </label>
-          <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
-            <input type="radio" name="sort" value="price-desc" class="w-4 h-4 text-amber-600">
-            <span class="text-white">Сначала подороже</span>
-          </label>
-          <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
-            <input type="radio" name="sort" value="newest" class="w-4 h-4 text-amber-600">
-            <span class="text-white">Сначала новинки</span>
-          </label>
-          <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
-            <input type="radio" name="sort" value="name-asc" class="w-4 h-4 text-amber-600">
-            <span class="text-white">По алфавиту А-Я</span>
-          </label>
-          <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
-            <input type="radio" name="sort" value="name-desc" class="w-4 h-4 text-amber-600">
-            <span class="text-white">По алфавиту Я-А</span>
-          </label>
-        </div>
-        <button id="apply-sort" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
-          Применить
-        </button>
-      </div>
-    </div>
-
-    <!-- Модальное окно фильтров -->
-    <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden">
-      <div class="bg-slate-800 rounded-t-2xl p-6 w-full absolute bottom-0 left-0 right-0 border-t border-amber-700 max-h-[70vh] overflow-y-auto transform translate-y-full transition-transform duration-300" style="padding-bottom: 6rem;">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-xl font-bold text-amber-400">Фильтры</h3>
-          <button id="close-filter-modal" class="text-amber-400 hover:text-amber-300 transition">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-        <div class="space-y-4 mb-6">
-          <div>
-            <label class="block text-amber-300 text-sm font-medium mb-2">Диапазон цены</label>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-blue-200 text-xs mb-1">От</label>
-                <input type="number" id="price-from" min="0" class="w-full p-2 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400 text-white text-sm" />
-              </div>
-              <div>
-                <label class="block text-blue-200 text-xs mb-1">До</label>
-                <input type="number" id="price-to" min="0" class="w-full p-2 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400 text-white text-sm" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="flex gap-3">
-          <button id="reset-filter" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-bold transition">
-            Сбросить
-          </button>
-          <button id="apply-filter" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
-            Применить
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Модальное окно пополнения счета -->
     <div id="topup-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
       <div class="bg-slate-800 rounded-2xl p-6 max-w-md w-full mx-4 border border-amber-700">
@@ -2109,7 +2057,7 @@
         <div class="space-y-4">
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Введите сумму</label>
-            <input type="number" id="topup-amount" min="1" max="1000000" step="0.01" placeholder="0.00" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" />
+            <input type="number" id="topup-amount" min="1" max="1000000" step="0.01" placeholder="0.00" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" />
             <p class="text-[11px] text-amber-200/55 mt-2 leading-snug">За раз не более 1&nbsp;000&nbsp;000&nbsp;₽. Баланс не выше 10&nbsp;000&nbsp;000&nbsp;₽.</p>
           </div>
           <div class="flex gap-3 mt-6">
@@ -2135,7 +2083,7 @@
         </div>
         <div class="space-y-4">
           <div>
-            <input type="text" id="certificate-code" placeholder="Введите код сертификата" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" />
+            <input type="text" id="certificate-code" placeholder="Введите код сертификата" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" />
           </div>
           <div class="flex gap-3 mt-6">
             <button id="certificate-activate" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
@@ -2174,19 +2122,19 @@
         <div id="delivery-form" class="space-y-4">
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">ФИО <span class="text-red-400">*</span></label>
-            <input type="text" id="delivery-name" required maxlength="100" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" placeholder="Иванов Иван Иванович" />
+            <input type="text" id="delivery-name" required maxlength="100" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" placeholder="Иванов Иван Иванович" />
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Телефон <span class="text-red-400">*</span></label>
-            <input type="tel" id="delivery-phone" required maxlength="22" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" placeholder="+7(999)123-45-67" />
+            <input type="tel" id="delivery-phone" required maxlength="22" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" placeholder="+7(999)123-45-67" />
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Адрес доставки <span class="text-red-400">*</span></label>
-            <textarea id="delivery-address" required maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Укажите адрес доставки"></textarea>
+            <textarea id="delivery-address" required maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm resize-none" placeholder="Укажите адрес доставки"></textarea>
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий <span class="text-slate-300/90 font-normal">(до 500 символов)</span></label>
-            <textarea id="delivery-comment" maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Дополнительная информация (необязательно)"></textarea>
+            <textarea id="delivery-comment" maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm resize-none" placeholder="Дополнительная информация (необязательно)"></textarea>
           </div>
         </div>
 
@@ -2198,15 +2146,15 @@
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">ФИО <span class="text-red-400">*</span></label>
-            <input type="text" id="pickup-name" required maxlength="100" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" placeholder="Иванов Иван Иванович" />
+            <input type="text" id="pickup-name" required maxlength="100" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" placeholder="Иванов Иван Иванович" />
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Телефон <span class="text-red-400">*</span></label>
-            <input type="tel" id="pickup-phone" required maxlength="22" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" placeholder="+7(999)123-45-67" />
+            <input type="tel" id="pickup-phone" required maxlength="22" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" placeholder="+7(999)123-45-67" />
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий <span class="text-slate-300/90 font-normal">(до 500 символов)</span></label>
-            <textarea id="pickup-comment" maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Дополнительная информация (необязательно)"></textarea>
+            <textarea id="pickup-comment" maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm resize-none" placeholder="Дополнительная информация (необязательно)"></textarea>
           </div>
         </div>
 
@@ -2232,6 +2180,7 @@
           </button>
         </div>
         <div class="space-y-4">
+          <p id="payment-form-error" class="hidden text-sm text-red-400 px-1" role="alert"></p>
           <div class="bg-slate-700 bg-opacity-50 rounded-lg p-4 border border-amber-700">
             <div id="payment-order-summary"></div>
             <div class="hidden">
@@ -2322,11 +2271,11 @@
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Заголовок</label>
-            <input type="text" id="review-title" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm" placeholder="Краткий заголовок отзыва" />
+            <input type="text" id="review-title" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" placeholder="Краткий заголовок отзыва" />
           </div>
           <div>
             <label class="block text-amber-300 text-sm font-medium mb-2">Комментарий</label>
-            <textarea id="review-comment" rows="4" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder-amber-400/50 text-white text-sm resize-none" placeholder="Опишите ваши впечатления от заказа"></textarea>
+            <textarea id="review-comment" rows="4" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm resize-none" placeholder="Опишите ваши впечатления от заказа"></textarea>
           </div>
           <div class="mt-6">
             <button id="review-submit-btn" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
@@ -2338,6 +2287,77 @@
     </div>
 
   </main>
+
+  <!-- Сортировка/фильтры вне <main>: fixed привязан к окну, фон категории не прокручивается вместе с листом -->
+  <div id="sort-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden overscroll-contain touch-none" style="overscroll-behavior: contain;">
+    <div class="bg-slate-800 rounded-t-2xl p-6 w-full absolute bottom-0 left-0 right-0 border-t border-amber-700 max-h-[70vh] overflow-y-auto touch-auto transform translate-y-full transition-transform duration-300" style="padding-bottom: 6rem;">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-amber-400">Сортировка</h3>
+        <button id="close-sort-modal" class="text-amber-400 hover:text-amber-300 transition">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="space-y-3 mb-6">
+        <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
+          <input type="radio" name="sort" value="price-asc" class="w-4 h-4 text-amber-600">
+          <span class="text-white">Сначала подешевле</span>
+        </label>
+        <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
+          <input type="radio" name="sort" value="price-desc" class="w-4 h-4 text-amber-600">
+          <span class="text-white">Сначала подороже</span>
+        </label>
+        <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
+          <input type="radio" name="sort" value="newest" class="w-4 h-4 text-amber-600">
+          <span class="text-white">Сначала новинки</span>
+        </label>
+        <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
+          <input type="radio" name="sort" value="name-asc" class="w-4 h-4 text-amber-600">
+          <span class="text-white">По алфавиту А-Я</span>
+        </label>
+        <label class="flex items-center gap-3 p-3 rounded-lg bg-slate-700 bg-opacity-50 border border-amber-700 border-opacity-30 cursor-pointer hover:bg-slate-700 transition">
+          <input type="radio" name="sort" value="name-desc" class="w-4 h-4 text-amber-600">
+          <span class="text-white">По алфавиту Я-А</span>
+        </label>
+      </div>
+      <button id="apply-sort" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
+        Применить
+      </button>
+    </div>
+  </div>
+
+  <div id="filter-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden overscroll-contain touch-none" style="overscroll-behavior: contain;">
+    <div class="bg-slate-800 rounded-t-2xl p-6 w-full absolute bottom-0 left-0 right-0 border-t border-amber-700 max-h-[70vh] overflow-y-auto touch-auto transform translate-y-full transition-transform duration-300" style="padding-bottom: 6rem;">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-amber-400">Фильтры</h3>
+        <button id="close-filter-modal" class="text-amber-400 hover:text-amber-300 transition">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="block text-amber-300 text-sm font-medium mb-2">Диапазон цены</label>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-blue-200 text-xs mb-1">От</label>
+              <input type="number" id="price-from" min="0" class="w-full p-2 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 text-sm text-slate-100 placeholder:text-slate-400/60" />
+            </div>
+            <div>
+              <label class="block text-blue-200 text-xs mb-1">До</label>
+              <input type="number" id="price-to" min="0" class="w-full p-2 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 text-sm text-slate-100 placeholder:text-slate-400/60" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button id="reset-filter" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-bold transition">
+          Сбросить
+        </button>
+        <button id="apply-filter" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
+          Применить
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Фиксированная панель конфигуратора (корзина / избранное) — вместо основной навигации на вкладке конфигуратора -->
@@ -2533,8 +2553,8 @@ function getCanonicalSkuRow(categoryId, p) {
     const byId = list.find((x) => String(x.id) === String(p.id));
     if (byId) return byId;
   }
-  const norm = (src) => String(resolveProductImageSrc(src) || '').toLowerCase().replace(/\\/g, '/');
-  const img = norm(p.image);
+  const norm = (src, prod) => String(resolveProductImageSrc(src, prod) || '').toLowerCase().replace(/\\/g, '/');
+  const img = norm(p.image, p);
   if (!img) return null;
   const candidates = list.filter((x) => norm(x.image) === img);
   if (candidates.length === 1) return candidates[0];
@@ -2583,14 +2603,14 @@ function sanitizeCategoryProducts(categoryId, products) {
     const name = String(p?.name || '').toLowerCase();
     const cpu = String(p?.cpu || '').toLowerCase();
     const gpu = String(p?.gpu || '').toLowerCase();
-    const image = String(resolveProductImageSrc(p?.image || '') || '').toLowerCase();
+    const image = String(resolveProductImageSrc(p?.image || '', p) || '').toLowerCase();
     if (name.includes('test') || image.includes('test')) return false;
     if (cpu.includes('13100') || gpu.includes('5050')) return false;
     return true;
   });
 
   // Если после очистки карточек меньше 4, добираем эталонными 4K сборками (без дубликатов по image+cpu+gpu).
-  const keyOf = (p) => `${String(resolveProductImageSrc(p?.image || '') || '').toLowerCase()}|${String(p?.cpu || '').toLowerCase()}|${String(p?.gpu || '').toLowerCase()}`;
+  const keyOf = (p) => `${String(resolveProductImageSrc(p?.image || '', p) || '').toLowerCase()}|${String(p?.cpu || '').toLowerCase()}|${String(p?.gpu || '').toLowerCase()}`;
   const present = new Set(cleaned.map(keyOf));
   const completed = cleaned.slice();
   for (const fallback of PRODUCTS_4K) {
@@ -3563,10 +3583,30 @@ const LEGACY_PRODUCT_IMAGE_MAP = {
   'photo/pc1_4.jpg': 'photo/pc_fh4.jpg',
   'photo/pc1_5.jpg': 'photo/pc_fh1.jpg'
 };
-function resolveProductImageSrc(src) {
+function aurumClientApiBaseUrl() {
+  try {
+    if (window.API && window.API.baseUrl) return String(window.API.baseUrl).replace(/\/+$/, '');
+  } catch (e) {}
+  const ex = (window.API_URL || (typeof localStorage !== 'undefined' && localStorage.getItem('API_URL')) || '').trim();
+  if (ex) return ex.replace(/\/+$/, '');
+  const { origin, pathname, protocol, hostname, port } = window.location;
+  if (protocol === 'file:') return 'http://127.0.0.1:8000/api';
+  if ((hostname === 'localhost' || hostname === '127.0.0.1') && port !== '8000' && port !== '8001' && pathname.includes('/pc_salon/'))
+    return 'http://127.0.0.1:8000/api';
+  return `${origin.replace(/\/$/, '')}/api`;
+}
+function productDbImageUrl(productId) {
+  if (productId == null || productId === '') return '';
+  const base = aurumClientApiBaseUrl();
+  if (!base) return '';
+  return `${base}/products/image/${encodeURIComponent(String(productId))}`;
+}
+function resolveProductImageSrc(src, ctx) {
   if (src == null || src === '') return '';
   const key = String(src).trim();
-  return LEGACY_PRODUCT_IMAGE_MAP[key] || key;
+  if (key === '__inline__' && ctx && ctx.id != null) return productDbImageUrl(ctx.id);
+  const mapped = LEGACY_PRODUCT_IMAGE_MAP[key] || key;
+  return mapped;
 }
 
 // Соответствие изображения товара ключу PRODUCT_CONFIGS (как у моков 101–304).
@@ -3588,7 +3628,7 @@ function resolveConfiguratorProductId(product) {
   const normalizedName = String(product.name || '').toLowerCase();
   if (normalizedName.includes('4k standard')) return 103;
   if (normalizedName.includes('4k basic')) return 104;
-  const resolvedSrc = resolveProductImageSrc(product.image);
+  const resolvedSrc = resolveProductImageSrc(product.image, product);
   const path = String(resolvedSrc || '').toLowerCase();
   if (path.includes('pc4_4')) {
     const cpu = String(product.cpu || '').toLowerCase();
@@ -3660,6 +3700,7 @@ function normalizeConfiguratorPayloadFromDb(raw, product) {
   const jsonBase = Math.round(Number(raw.basePrice != null ? raw.basePrice : rowPrice) || 0);
   const basePrice = rowPrice > 0 ? rowPrice : jsonBase;
   return {
+    id: product.id,
     basePrice,
     baseCpu: raw.baseCpu != null ? String(raw.baseCpu) : (product.cpu || ''),
     baseGpu: raw.baseGpu != null ? String(raw.baseGpu) : (product.gpu || ''),
@@ -3675,6 +3716,7 @@ function synthesizeMinimalConfigurator(product) {
   const cpuName = String(product.cpu || 'Процессор').trim() || 'Процессор';
   const gpuName = String(product.gpu || 'Видеокарта').trim() || 'Видеокарта';
   return {
+    id: product.id,
     basePrice: price,
     baseCpu: cpuName,
     baseGpu: gpuName,
@@ -3711,6 +3753,7 @@ function buildConfiguratorConfigFromApiProduct(product) {
     const rowPrice = Math.round(Number(product.price) || 0);
     const basePrice = rowPrice > 0 ? rowPrice : c.basePrice;
     return {
+      id: product.id,
       basePrice,
       baseCpu: c.baseCpu,
       baseGpu: c.baseGpu,
@@ -3989,6 +4032,21 @@ function buildCartConfigsForSync() {
   return out;
 }
 
+function buildFavoriteConfigsForSync() {
+  const out = {};
+  try {
+    for (const id of favs.ids) {
+      const sid = String(id);
+      if (!sid.startsWith('config-')) continue;
+      const blob = safeLocalStorageGet(`fav_config_${sid}`, null);
+      if (blob && typeof blob === 'object') out[sid] = blob;
+    }
+  } catch (e) {
+    console.warn('buildFavoriteConfigsForSync:', e);
+  }
+  return out;
+}
+
 function scheduleUserStateSyncFromLocal() {
   if (!USER_STATE_SYNC_READY) return;
   const tid = getResolvedTelegramId();
@@ -4006,6 +4064,7 @@ function scheduleUserStateSyncFromLocal() {
           deposit_history_revision: getDepositHistoryRevisionKnown()
         },
         cart_configs: buildCartConfigsForSync(),
+        favorite_configs: buildFavoriteConfigsForSync(),
       });
       if (state && state.profile_finance) syncLocalDepositHistoryFromServerFinance(state.profile_finance);
     } catch (e) {
@@ -4438,7 +4497,7 @@ function is4kItemForBonus(item) {
     const cfg = baseId != null ? PRODUCT_CONFIGS[baseId] : null;
     if (cfg) {
       const cfgName = String(cfg.name || '').toLowerCase();
-      const cfgImage = String(resolveProductImageSrc(cfg.image || '') || '').toLowerCase();
+      const cfgImage = String(resolveProductImageSrc(cfg.image || '', cfg) || '').toLowerCase();
       return cfgName.includes('4k') || cfgImage.includes('pc4_');
     }
     return false;
@@ -4456,7 +4515,7 @@ function is4kItemForBonus(item) {
     if (baseCategory === '4k') return true;
   }
 
-  const imagePath = String(resolveProductImageSrc(item.image || '') || '').toLowerCase();
+  const imagePath = String(resolveProductImageSrc(item.image || '', item) || '').toLowerCase();
   const itemName = String(item.name || '').toLowerCase();
   if (imagePath.includes('pc4_') || imagePath.includes('/4k') || itemName.includes('4k')) return true;
   return false;
@@ -4534,6 +4593,11 @@ function buildOrderSummaryHtml(pricing) {
 }
 
 function updatePaymentModalUI() {
+  const payErr = qs('#payment-form-error');
+  if (payErr) {
+    payErr.textContent = '';
+    payErr.classList.add('hidden');
+  }
   const useBonusesCheckbox = qs('#payment-use-bonuses');
   const useBonuses = useBonusesCheckbox ? !!useBonusesCheckbox.checked : true;
   const pricing = calculateOrderPricing(cart.getItemsFull(), getProfileFinance(), { useBonuses });
@@ -4733,12 +4797,20 @@ function isTelegramMiniAppClient() {
 function updateBackButton(){
   const tg = safeTelegram();
   const useNativeTelegramBack = !!(tg && tg.BackButton && isTelegramMiniAppClient());
+  const onCatalogRoot = isCatalogRootView();
+  const showBack = navigationHistory.length > 1 && !onCatalogRoot;
   
   if (useNativeTelegramBack) {
-    if (navigationHistory.length > 1) {
+    if (showBack) {
+      try {
+        if (typeof tg.BackButton.offClick === 'function') tg.BackButton.offClick();
+      } catch (e) { /* ignore */ }
       tg.BackButton.show();
       tg.BackButton.onClick(goBack);
     } else {
+      try {
+        if (typeof tg.BackButton.offClick === 'function') tg.BackButton.offClick();
+      } catch (e) { /* ignore */ }
       tg.BackButton.hide();
     }
   } else {
@@ -4747,7 +4819,7 @@ function updateBackButton(){
     }
     const backButton = qs('#back-button');
     if (!backButton) return;
-    if (navigationHistory.length > 1) {
+    if (showBack) {
       backButton.classList.remove('back-button-hidden');
       backButton.classList.add('back-button-visible');
     } else {
@@ -4893,7 +4965,7 @@ class Cart {
         id: product.id,
         name: product.name,
         price: Number(product.price) || 0,
-        image: resolveProductImageSrc(product.image),
+        image: resolveProductImageSrc(product.image, product),
         cpu: product.cpu,
         gpu: product.gpu,
         category_id: product.category_id != null ? product.category_id : undefined,
@@ -4961,6 +5033,18 @@ function applyUserStateFromServerPayload(state) {
   }
   favs.ids = serverFav.map((x) => String(x));
   safeLocalStorageSet(favs.key, favs.ids);
+  const serverFavCfg = state.favorite_configs && typeof state.favorite_configs === 'object' ? state.favorite_configs : null;
+  if (serverFavCfg) {
+    try {
+      for (const sid of favs.ids) {
+        if (!String(sid).startsWith('config-')) continue;
+        const blob = serverFavCfg[sid];
+        if (blob && typeof blob === 'object') safeLocalStorageSet(`fav_config_${sid}`, blob);
+      }
+    } catch (e) {
+      console.warn('hydrate favorite_configs:', e);
+    }
+  }
   const serverFinance = state.profile_finance && typeof state.profile_finance === 'object' ? state.profile_finance : null;
   if (serverFinance) {
     mergeDepositHistoryFromServer(serverFinance.deposit_history, serverFinance.deposit_history_revision);
@@ -4974,6 +5058,20 @@ function applyUserStateFromServerPayload(state) {
   const favEl = qs('#favorites');
   if (cartEl && cartEl.getAttribute('aria-hidden') === 'false') renderCart();
   if (favEl && favEl.getAttribute('aria-hidden') === 'false') renderFavorites();
+  refreshVisibleCatalogFavoriteUi();
+}
+
+function refreshVisibleCatalogFavoriteUi() {
+  const active = document.querySelector('.tab[aria-hidden="false"]');
+  if (!active || !active.id) return;
+  const m = /^category-(4k|2k|fullhd)-products$/.exec(active.id);
+  if (!m) return;
+  const cid = m[1];
+  try {
+    renderCategoryProductsFiltered(cid, CATEGORY_PRODUCTS[cid] || []);
+  } catch (e) {
+    console.warn('refreshVisibleCatalogFavoriteUi:', e);
+  }
 }
 
 async function refreshUserStateFromServer() {
@@ -5069,7 +5167,7 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
       card.className = 'card-base rounded-xl overflow-hidden p-2 flex flex-col card-pressable h-[240px]';
       card.innerHTML = `
         <div class="w-full bg-slate-900 flex items-center justify-center mb-1.5 rounded-lg overflow-hidden h-[140px] flex-shrink-0">
-          <img src="${resolveProductImageSrc(p.image)}" alt="${escapeHtmlAttrText(displayName || p.name || '')}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='${searchPlaceholder}'">
+          <img src="${resolveProductImageSrc(p.image, p)}" alt="${escapeHtmlAttrText(displayName || p.name || '')}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='${searchPlaceholder}'">
         </div>
         <div class="mb-1.5 flex-shrink-0 min-h-[32px]">
           <p class="text-xs text-blue-200 leading-tight">${escapeHtmlAttrText(displayName)}</p>
@@ -5100,8 +5198,8 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
 
       favBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        favs.toggle(p.id);
-        const isFav = favs.has(p.id);
+        applyFavoriteToggleForProductCard(p.id);
+        const isFav = shouldUseConfiguratorFavoriteId(p.id) ? isConfiguratorFavorite(Number(p.id)) : favs.has(p.id);
         favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
         if (isFav) {
           favBtn.classList.add('text-red-500');
@@ -5110,14 +5208,15 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
           favBtn.classList.remove('text-red-500');
           favBtn.classList.add('text-amber-400');
         }
-        updateProfileFavCount();
-        showFavBadge();
       });
 
-      if (favs.has(p.id)) {
-        favBtn.classList.add('text-red-500');
-        favBtn.classList.remove('text-amber-400');
-        favBtn.setAttribute('aria-pressed', 'true');
+      {
+        const isFav = shouldUseConfiguratorFavoriteId(p.id) ? isConfiguratorFavorite(Number(p.id)) : favs.has(p.id);
+        if (isFav) {
+          favBtn.classList.add('text-red-500');
+          favBtn.classList.remove('text-amber-400');
+          favBtn.setAttribute('aria-pressed', 'true');
+        }
       }
 
       card.style.cursor = 'pointer';
@@ -5142,15 +5241,16 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
     el.className = 'bg-slate-800/70 p-3 rounded-xl border border-amber-800 flex gap-3 items-center';
     const displayName = getDisplayCpuGpuTitle(p) || (p.name || '');
     const configProductId = resolveOpenConfiguratorId(p);
+    const listFavActive = shouldUseConfiguratorFavoriteId(p.id) ? isConfiguratorFavorite(Number(p.id)) : favs.has(p.id);
     el.innerHTML = `
-      <img src="${resolveProductImageSrc(p.image)}" alt="${escapeHtmlAttrText(displayName || p.name || '')}" class="product-open w-24 h-24 object-contain bg-slate-700 rounded-lg p-1 cursor-pointer" loading="lazy">
+      <img src="${resolveProductImageSrc(p.image, p)}" alt="${escapeHtmlAttrText(displayName || p.name || '')}" class="product-open w-24 h-24 object-contain bg-slate-700 rounded-lg p-1 cursor-pointer" loading="lazy">
       <div class="flex-1 min-w-0">
         <h4 class="product-open font-bold text-amber-300 cursor-pointer hover:text-amber-200 transition-colors">${escapeHtmlAttrText(displayName)}</h4>
       </div>
       <div class="text-right">
         <div class="text-lg font-bold text-amber-400">${formatPrice(p.price)}</div>
         <div class="mt-2 flex gap-2 justify-end">
-          <button class="add-fav text-amber-300" data-id="${p.id}" aria-pressed="${favs.has(p.id)}"><i class="fas fa-heart"></i></button>
+          <button class="add-fav ${listFavActive ? 'text-red-500' : 'text-amber-300'}" data-id="${p.id}" aria-pressed="${listFavActive}"><i class="fas fa-heart"></i></button>
           <button class="add-cart bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-semibold" data-id="${p.id}">В корзину</button>
         </div>
       </div>
@@ -5165,19 +5265,17 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
       setTimeout(()=>e.currentTarget.classList.remove('pop'), 480);
     });
     el.querySelector('.add-fav').addEventListener('click', (e)=>{
-      e.stopPropagation(); // Предотвращаем всплытие события
-      favs.toggle(p.id);
-      e.currentTarget.setAttribute('aria-pressed', favs.has(p.id));
-      // Визуальная обратная связь
-      if(favs.has(p.id)){
+      e.stopPropagation();
+      applyFavoriteToggleForProductCard(p.id);
+      const active = shouldUseConfiguratorFavoriteId(p.id) ? isConfiguratorFavorite(Number(p.id)) : favs.has(p.id);
+      e.currentTarget.setAttribute('aria-pressed', active);
+      if (active) {
         e.currentTarget.classList.add('text-red-500');
         e.currentTarget.classList.remove('text-amber-300');
       } else {
         e.currentTarget.classList.remove('text-red-500');
         e.currentTarget.classList.add('text-amber-300');
       }
-      updateProfileFavCount();
-      showFavBadge();
     });
 
     // По клику на фото/название из поиска открываем страницу товара с конфигуратором.
@@ -5306,6 +5404,77 @@ function syncConfiguratorFavButton(favBtn, productId) {
   }
 }
 
+function buildDefaultFavConfigBlobForProduct(productId) {
+  const pid = Number(productId);
+  if (!Number.isFinite(pid)) return null;
+  const p = findLoadedApiProductById(pid);
+  let config = null;
+  if (p) {
+    config = buildConfiguratorConfigFromApiProduct(p);
+  } else {
+    config = PRODUCT_CONFIGS[pid];
+  }
+  if (!config || !config.options) return null;
+  const cpu = config.options.cpu.find((o) => o.selected) || config.options.cpu[0];
+  const gpu = config.options.gpu.find((o) => o.selected) || config.options.gpu[0];
+  const ssd = config.options.ssd.find((o) => o.selected) || config.options.ssd[0];
+  const warranty = config.options.warranty.find((o) => o.selected) || config.options.warranty[0];
+  const price =
+    Number(config.basePrice || 0) +
+    Number(cpu.price || 0) +
+    Number(gpu.price || 0) +
+    Number(ssd.price || 0) +
+    Number(warranty.price || 0);
+  return {
+    productId: pid,
+    baseName: config.name,
+    config: { cpu, gpu, ssd, warranty },
+    price: Math.round(price),
+    image: resolveProductImageSrc(config.image, config),
+  };
+}
+
+function shouldUseConfiguratorFavoriteId(productId) {
+  const n = Number(productId);
+  if (!Number.isFinite(n)) return false;
+  if (PRODUCT_CONFIGS[n]) return true;
+  const p = findLoadedApiProductById(n);
+  if (!p) return false;
+  const cat = String(p.category_id || p.category || '').toLowerCase();
+  return ['4k', '2k', 'fullhd'].includes(cat);
+}
+
+function applyFavoriteToggleForProductCard(productId) {
+  const n = Number(productId);
+  if (!Number.isFinite(n) || !shouldUseConfiguratorFavoriteId(n)) {
+    favs.toggle(productId);
+    updateProfileFavCount();
+    showFavBadge();
+    return;
+  }
+  const favCanonical = `config-${n}`;
+  const was = isConfiguratorFavorite(n);
+  if (was) {
+    favs.remove(String(n));
+    favs.remove(favCanonical);
+    try {
+      localStorage.removeItem(`fav_config_${favCanonical}`);
+    } catch (e) { /* ignore */ }
+  } else {
+    favs.remove(String(n));
+    if (!favs.has(favCanonical)) favs.toggle(favCanonical);
+    const blob = buildDefaultFavConfigBlobForProduct(n);
+    if (blob) safeLocalStorageSet(`fav_config_${favCanonical}`, blob);
+  }
+  updateProfileFavCount();
+  showFavBadge();
+}
+
+function isCatalogRootView() {
+  const active = document.querySelector('.tab[aria-hidden="false"]');
+  return !!(active && active.id === 'catalog');
+}
+
 // отрисовка корзины
 function renderCart(){
   const items = cart.getItemsFull();
@@ -5362,7 +5531,7 @@ function renderCart(){
 
     el.innerHTML = `
       <div class="cart-open w-[4.25rem] h-[4.25rem] sm:w-[4.75rem] sm:h-[4.75rem] rounded-lg overflow-hidden border border-slate-500/55 bg-slate-900/80 flex-shrink-0 cursor-pointer">
-        <img src="${resolveProductImageSrc(p.image)}" alt="" class="w-full h-full object-cover pointer-events-none" loading="lazy">
+        <img src="${resolveProductImageSrc(p.image, p)}" alt="" class="w-full h-full object-cover pointer-events-none" loading="lazy">
       </div>
       <div class="flex-1 min-w-0 pr-0.5">
         <p class="cart-open text-xs text-sky-300 leading-snug font-bold line-clamp-2 break-words [overflow-wrap:anywhere] cursor-pointer hover:text-sky-200 transition-colors">${escapeHtmlAttrText(displayName)}</p>
@@ -5683,7 +5852,7 @@ function getCheckoutData(isDelivery){
     const dPhone = normalizePhoneDigitsRu11(qs('#delivery-phone').value);
     const phone = dPhone ? formatPhoneRuDisplay(dPhone) : qs('#delivery-phone').value.trim();
     const nv = validateFullName(qs('#delivery-name').value);
-    const nameOut = nv.valid && nv.normalized ? nv.normalized : normalizeFullNameInput(qs('#delivery-name').value);
+    const nameOut = nv.valid && nv.normalized ? nv.normalized : normalizeFullNameInput(qs('#delivery-name').value || '');
     return {
       type: 'delivery',
       name: nameOut,
@@ -5695,12 +5864,12 @@ function getCheckoutData(isDelivery){
   const dPhoneP = normalizePhoneDigitsRu11(qs('#pickup-phone').value);
   const phoneP = dPhoneP ? formatPhoneRuDisplay(dPhoneP) : qs('#pickup-phone').value.trim();
   const nvP = validateFullName(qs('#pickup-name').value);
-  const nameP = nvP.valid && nvP.normalized ? nvP.normalized : normalizeFullNameInput(qs('#pickup-name').value);
+  const nameP = nvP.valid && nvP.normalized ? nvP.normalized : normalizeFullNameInput(qs('#pickup-name').value || '');
   return {
     type: 'pickup',
     name: nameP,
     phone: phoneP,
-    address: 'г Краснодар, ул Московская, д 25',
+    address: null,
     comment: qs('#pickup-comment').value.trim() || null
   };
 }
@@ -5842,7 +6011,7 @@ function renderFavorites(){
     const item = document.createElement('div');
     item.className = 'bg-slate-800/70 p-3 rounded-xl border border-slate-600/60 flex items-start gap-3';
     item.innerHTML = `
-      <img src="${resolveProductImageSrc(p.image)}" class="fav-open w-24 h-24 flex-shrink-0 object-cover bg-slate-700 rounded-lg cursor-pointer" loading="lazy">
+      <img src="${resolveProductImageSrc(p.image, p)}" class="fav-open w-24 h-24 flex-shrink-0 object-cover bg-slate-700 rounded-lg cursor-pointer" loading="lazy">
       <div class="flex-1 min-w-0 pt-0.5">
         <div class="fav-open font-bold text-sky-300 cursor-pointer hover:text-sky-200 transition-colors leading-tight">${cardTitle}</div>
         ${descriptionBlock}
@@ -6127,7 +6296,14 @@ function openTab(tabId){
       renderCart();
     }
   }
-  if(tabId === 'favorites') { renderFavorites(); }
+  if(tabId === 'favorites') {
+    const tidF = getResolvedTelegramId();
+    if (tidF && window.API && window.API.userState) {
+      refreshUserStateFromServer().finally(() => { renderFavorites(); showFavBadge(); updateProfileFavCount(); refreshVisibleCatalogFavoriteUi(); });
+    } else {
+      renderFavorites();
+    }
+  }
   if(tabId === 'profile') { 
     updateProfileFavCount();
     updateTelegramProfile(); // Обновляем профиль при открытии вкладки
@@ -6185,6 +6361,7 @@ function openTab(tabId){
     mainContainer.scrollTop = 0;
   }
 
+  updateBackButton();
   aurumPreviousTabId = tabId;
 }
 
@@ -6333,10 +6510,35 @@ async function applyAllFilters(categoryId) {
   }
 });
 
+function aurumLockMainScrollForCategorySheet(on) {
+  const main = qs('main');
+  if (!main) return;
+  if (on) {
+    try {
+      main.setAttribute('data-aurum-lock-scroll', String(main.scrollTop || 0));
+    } catch (e) {}
+    main.style.overflow = 'hidden';
+    document.body.classList.add('aurum-category-sheet-open');
+  } else {
+    let prev = 0;
+    try {
+      prev = parseInt(main.getAttribute('data-aurum-lock-scroll') || '0', 10) || 0;
+    } catch (e2) {}
+    main.style.overflow = '';
+    main.removeAttribute('data-aurum-lock-scroll');
+    main.scrollTop = prev;
+    document.body.classList.remove('aurum-category-sheet-open');
+  }
+}
+
 // Универсальная функция для открытия модального окна
 function openModal(modalId, onOpen = null){
   const modal = qs(modalId);
   if(!modal) return;
+
+  if (modalId === '#sort-modal' || modalId === '#filter-modal') {
+    aurumLockMainScrollForCategorySheet(true);
+  }
   
   const modalContent = modal.querySelector('div');
   const bottomNav = qs('nav');
@@ -6361,6 +6563,9 @@ function closeModal(modalId, onClose = null){
   
   setTimeout(() => {
     modal.classList.add('hidden');
+    if (modalId === '#sort-modal' || modalId === '#filter-modal') {
+      aurumLockMainScrollForCategorySheet(false);
+    }
     if (bottomNav && !isConfiguratorViewActive()) bottomNav.classList.remove('hidden');
     if(onClose) onClose();
   }, 300);
@@ -6591,7 +6796,7 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
   container.innerHTML = '';
 
   if (!products.length) {
-    container.innerHTML = '<div class="col-span-2 text-center text-amber-200 py-10 text-sm">В этой категории нет товаров в базе. Добавьте записи в таблицу <code class="text-amber-300">products</code> или выполните <code class="text-amber-300">seed.sql</code>.</div>';
+    container.innerHTML = '<div class="col-span-2 text-center text-amber-200 py-10 text-sm px-2">По вашему запросу ничего не найдено.<br><span class="text-amber-200/70 text-xs mt-2 inline-block">Попробуйте изменить поиск или настройки фильтра.</span></div>';
     return;
   }
 
@@ -6608,7 +6813,7 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
     card.className = `card-base rounded-xl overflow-hidden p-2 flex flex-col card-pressable ${cardHeightClass}`;
     card.innerHTML = `
       <div class="w-full bg-slate-900 flex items-center justify-center mb-1.5 rounded-lg overflow-hidden h-[140px] flex-shrink-0">
-        <img src="${resolveProductImageSrc(product.image)}" alt="${titleLine || product.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='${placeholder}'">
+        <img src="${resolveProductImageSrc(product.image, product)}" alt="${titleLine || product.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.src='${placeholder}'">
       </div>
       <div class="${titleBlockClass}">
         <p class="${titleLineClass}">${escapeHtmlAttrText(titleLine)}</p>
@@ -6640,8 +6845,8 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
 
     favBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      favs.toggle(product.id);
-      const isFav = favs.has(product.id);
+      applyFavoriteToggleForProductCard(product.id);
+      const isFav = shouldUseConfiguratorFavoriteId(product.id) ? isConfiguratorFavorite(Number(product.id)) : favs.has(product.id);
       favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
       if(isFav){
         favBtn.classList.add('text-red-500');
@@ -6650,15 +6855,15 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
         favBtn.classList.remove('text-red-500');
         favBtn.classList.add('text-amber-400');
       }
-      updateProfileFavCount();
-      showFavBadge();
     });
 
-    // Устанавливаем начальное состояние избранного
-    if(favs.has(product.id)){
-      favBtn.classList.add('text-red-500');
-      favBtn.classList.remove('text-amber-400');
-      favBtn.setAttribute('aria-pressed', 'true');
+    {
+      const isFav = shouldUseConfiguratorFavoriteId(product.id) ? isConfiguratorFavorite(Number(product.id)) : favs.has(product.id);
+      if(isFav){
+        favBtn.classList.add('text-red-500');
+        favBtn.classList.remove('text-amber-400');
+        favBtn.setAttribute('aria-pressed', 'true');
+      }
     }
 
     // Открываем конфигуратор этого товара (данные из API + config_json или синтез)
@@ -6752,7 +6957,7 @@ function renderConfigurator(productId, config){
   container.innerHTML = `
     <!-- Изображение ПК — на всю область блока -->
     <div class="mb-6 w-full bg-slate-900 rounded-xl overflow-hidden" style="height: 300px;">
-      <img src="${resolveProductImageSrc(config.image)}" alt="${escapeHtmlAttrText(config.name)}" class="w-full h-full object-cover object-center" loading="lazy" onerror="this.src='${CATEGORY_PLACEHOLDERS[categoryId] || 'photo/4K.png'}'">
+      <img src="${resolveProductImageSrc(config.image, config)}" alt="${escapeHtmlAttrText(config.name)}" class="w-full h-full object-cover object-center" loading="lazy" onerror="this.src='${CATEGORY_PLACEHOLDERS[categoryId] || 'photo/4K.png'}'">
     </div>
 
     <!-- Текущие характеристики -->
@@ -6868,7 +7073,7 @@ function renderConfigurator(productId, config){
                 warranty: currentConfig.warranty,
               },
               price: calculatePrice(),
-              image: resolveProductImageSrc(config.image),
+              image: resolveProductImageSrc(config.image, config),
             });
           }
         }
@@ -6889,7 +7094,7 @@ function renderConfigurator(productId, config){
       baseName: config.name,
       config: currentConfig,
       price: totalPrice,
-      image: resolveProductImageSrc(config.image)
+      image: resolveProductImageSrc(config.image, config)
     });
     showCartBadge();
     qs('#config-add-to-cart').classList.add('pop');
@@ -6926,7 +7131,7 @@ function renderConfigurator(productId, config){
           warranty: currentConfig.warranty,
         },
         price: totalPrice,
-        image: resolveProductImageSrc(config.image),
+        image: resolveProductImageSrc(config.image, config),
       });
     }
     syncConfiguratorFavButton(favBtn, productId);
@@ -8693,7 +8898,25 @@ function setupModals(){
               const safeTotalAmount = Math.max(0.01, roundMoney(pricing.payableTotal));
 
               const tidForOrder = getResolvedTelegramId();
-              const certForOrder = pricing.discountAmount > 0 ? getActiveCertificateCode() : null;
+              if (tidForOrder && window.API && window.API.certificates) {
+                await syncCertificateStateFromServer();
+              }
+              let certForOrder = null;
+              if (tidForOrder && pricing.discountAmount > 0 && window.API && window.API.certificates) {
+                try {
+                  const st = await window.API.certificates.getStatus(tidForOrder);
+                  const pend = st && st.pending;
+                  const localCode = getActiveCertificateCode();
+                  if (
+                    pend && pend.code && localCode &&
+                    String(pend.code).trim().toUpperCase() === String(localCode).trim().toUpperCase()
+                  ) {
+                    certForOrder = String(localCode).trim().toUpperCase();
+                  }
+                } catch (e) {
+                  console.warn('certificate getStatus before order', e);
+                }
+              }
 
               const orderDataForAPI = {
                 delivery_type: orderData.type,
@@ -8775,9 +8998,7 @@ function setupModals(){
               }
             } catch (error) {
               console.error('Failed to save order to database:', error);
-              console.error('Error details:', error.message, error.stack);
-              // Останавливаем оформление: нельзя списывать баланс/чистить корзину без сохраненного заказа.
-              throw new Error('Не удалось сохранить заказ в базе данных');
+              throw error;
             }
           } else {
             console.warn('API недоступен, заказ не будет сохранен в базу данных');
@@ -8827,7 +9048,15 @@ function setupModals(){
           
         } catch (error) {
           console.error('Error processing payment:', error);
-          alert(`Произошла ошибка при оформлении заказа: ${error.message || 'неизвестная ошибка'}. Попробуйте еще раз.`);
+          const payErr = qs('#payment-form-error');
+          const insuff = error && String(error.message || '').toLowerCase().includes('недостаточно');
+          const msg = insuff
+            ? (error.message || 'Недостаточно средств на счёте.')
+            : 'Не удалось оформить заказ. Попробуйте ещё раз.';
+          if (payErr) {
+            payErr.textContent = msg;
+            payErr.classList.remove('hidden');
+          }
         } finally {
           // Сбрасываем состояние кнопки оплаты
           paymentProcessBtn.disabled = false;

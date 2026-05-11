@@ -8,7 +8,6 @@ __pycache__/
 *$py.class
 
 # Python файлы (если не нужны для сайта)
-bot.py
 server.py
 
 # Системные файлы
