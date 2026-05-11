@@ -474,7 +474,8 @@
             }
             const url = String(reg.url);
             const fn = String(reg.filename || filename);
-            if (typeof tg.downloadFile === 'function' && (url.startsWith('https://') || url.startsWith('http://'))) {
+            const httpUrl = url.startsWith('https://') || url.startsWith('http://');
+            if (typeof tg.downloadFile === 'function' && httpUrl) {
                 const ok = await new Promise((resolve) => {
                     try {
                         tg.downloadFile({ url: url, file_name: fn }, (s) => resolve(!!s));
@@ -483,6 +484,8 @@
                     }
                 });
                 if (ok) return true;
+                /* Отмена в диалоге Telegram: openLink всё равно скачает файл — не вызываем. */
+                return false;
             }
             if (typeof tg.openLink === 'function' && url.startsWith('http')) {
                 try {
@@ -560,8 +563,9 @@
                         a.rel = 'noopener';
                         a.style.display = 'none';
                         document.body.appendChild(a);
-                        a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                        /* Один вызов: и MouseEvent + click() на ПК в Chromium дают два скачивания одного файла. */
                         if (typeof a.click === 'function') a.click();
+                        else a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                         setTimeout(() => {
                             URL.revokeObjectURL(url);
                             a.remove();
@@ -588,9 +592,7 @@
 
                 if (inTg) {
                     try {
-                        window.Telegram.WebApp.showAlert(
-                            'Выгрузка недоступна: нужен HTTPS у API (например ngrok) для Telegram, либо откройте админку в браузере (⋮ → «Открыть в браузере»).'
-                        );
+                        window.Telegram.WebApp.showAlert('Загрузка файла отменена');
                     } catch (e2) {}
                     return { ok: false, blocked: true };
                 }
