@@ -526,6 +526,7 @@
     #topup-modal,
     #certificate-modal,
     #checkout-modal,
+    #delivery-map-modal,
     #payment-modal,
     #order-success-modal,
     #review-modal {
@@ -595,6 +596,7 @@
     }
     #checkout-modal input,
     #checkout-modal textarea,
+    #delivery-map-modal input,
     #payment-modal input,
     #review-modal input,
     #review-modal textarea,
@@ -833,6 +835,17 @@
     #search-results .font-bold.text-amber-400 {
       color: #f2ebe1 !important;
     }
+    #search-results .add-cart.add-cart--active,
+    #products-4k-grid .add-cart.add-cart--active,
+    #products-2k-grid .add-cart.add-cart--active,
+    #products-fullhd-grid .add-cart.add-cart--active {
+      box-shadow: 0 0 0 2px rgba(110, 176, 240, 0.55);
+      border-color: rgba(110, 176, 240, 0.45) !important;
+    }
+    #catalog #product-list article .add-cart.add-cart--active {
+      box-shadow: 0 0 0 2px rgba(110, 176, 240, 0.45);
+      filter: brightness(1.06);
+    }
     /* Иконки корзины/избранного — как на карточках в категориях (#products-*-grid button.text-amber-400 → #8ec8ff) */
     #configurator #config-go-to-cart,
     #configurator #config-add-to-fav,
@@ -990,34 +1003,41 @@
     #filter-modal > div.bg-slate-800.rounded-t-2xl {
       padding-bottom: max(6rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem)) !important;
     }
-    #cart-remove-confirm-modal {
+    #cart-remove-confirm-modal,
+    #order-cancel-confirm-modal {
       background-color: rgba(5, 9, 16, 0.52) !important;
       backdrop-filter: blur(8px);
     }
-    #cart-remove-confirm-modal > div {
+    #cart-remove-confirm-modal > div,
+    #order-cancel-confirm-modal > div {
       background: linear-gradient(165deg, rgba(20, 26, 38, 0.96) 0%, rgba(12, 16, 24, 0.94) 100%) !important;
       border: 1px solid rgba(142, 200, 255, 0.22) !important;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
       backdrop-filter: blur(16px) saturate(118%);
     }
-    #cart-remove-confirm-modal #cart-remove-confirm-text {
+    #cart-remove-confirm-modal #cart-remove-confirm-text,
+    #order-cancel-confirm-modal #order-cancel-confirm-text {
       color: #f2ebe1 !important;
     }
-    #cart-remove-confirm-modal #cart-remove-confirm-yes {
+    #cart-remove-confirm-modal #cart-remove-confirm-yes,
+    #order-cancel-confirm-modal #order-cancel-confirm-yes {
       background: linear-gradient(180deg, #c95a6c 0%, #8f3d4c 100%) !important;
       color: #fff !important;
       border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
     }
-    #cart-remove-confirm-modal #cart-remove-confirm-yes:hover {
+    #cart-remove-confirm-modal #cart-remove-confirm-yes:hover,
+    #order-cancel-confirm-modal #order-cancel-confirm-yes:hover {
       filter: brightness(1.06);
     }
-    #cart-remove-confirm-modal #cart-remove-confirm-no {
+    #cart-remove-confirm-modal #cart-remove-confirm-no,
+    #order-cancel-confirm-modal #order-cancel-confirm-no {
       background: linear-gradient(to right, #4588c4, #6eb0f0) !important;
       color: #080c14 !important;
       border: 1px solid rgba(255, 255, 255, 0.14);
     }
-    #cart-remove-confirm-modal #cart-remove-confirm-no:hover {
+    #cart-remove-confirm-modal #cart-remove-confirm-no:hover,
+    #order-cancel-confirm-modal #order-cancel-confirm-no:hover {
       filter: brightness(1.06);
     }
     #terms a,
@@ -1095,6 +1115,7 @@
     #topup-modal,
     #certificate-modal,
     #checkout-modal,
+    #delivery-map-modal,
     #payment-modal,
     #order-success-modal,
     #review-modal {
@@ -1104,6 +1125,48 @@
     body.aurum-premium-shell .bg-gradient-to-r.from-amber-600.to-yellow-600:hover {
       background-image: linear-gradient(to right, #4588c4, #7ab8f8, #c4daf0) !important;
       filter: brightness(1.05);
+    }
+    /* Кнопки модалки карты: ледяной градиент (без янтаря), в духе остального мини-приложения */
+    #delivery-map-modal .aurum-map-cta {
+      background-image: linear-gradient(to right, #3d7eb8, #6eb0f0, #b0cce8) !important;
+      color: #0b1220 !important;
+      border: 1px solid rgba(142, 200, 255, 0.38) !important;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+    }
+    #delivery-map-modal .aurum-map-cta:hover {
+      filter: brightness(1.07);
+      box-shadow: 0 6px 22px rgba(110, 176, 240, 0.18);
+    }
+    /* Telegram WebView: не отдаём вертикальный жест «свайп — свернуть» области карты Leaflet */
+    #delivery-map-modal {
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+    #delivery-map-modal #delivery-map-modal-content {
+      touch-action: auto;
+      overscroll-behavior: contain;
+    }
+    #delivery-map-modal #delivery-map-results {
+      touch-action: pan-y;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    #delivery-map-modal .leaflet-container {
+      touch-action: none;
+      overscroll-behavior: none;
+      background: rgba(8, 12, 20, 0.88) !important;
+    }
+    #delivery-map-modal .leaflet-bar a {
+      background: rgba(14, 20, 32, 0.92) !important;
+      color: #8ec8ff !important;
+      border-color: rgba(142, 200, 255, 0.28) !important;
+    }
+    #delivery-map-modal .leaflet-bar a:hover {
+      background: rgba(110, 176, 240, 0.15) !important;
+      color: #f2ebe1 !important;
+    }
+    #delivery-map-modal .leaflet-control-attribution {
+      display: none !important;
     }
     #sort-modal input[type="radio"].text-amber-600,
     #filter-modal input[type="radio"].text-amber-600 {
@@ -1123,6 +1186,7 @@
     #topup-modal > div.border.border-amber-700,
     #certificate-modal > div.border.border-amber-700,
     #checkout-modal #checkout-modal-content,
+    #delivery-map-modal #delivery-map-modal-content,
     #payment-modal > div.bg-slate-800.rounded-2xl,
     #order-success-modal > div.bg-slate-800.rounded-2xl,
     #review-modal > div.bg-slate-800.rounded-2xl {
@@ -2129,7 +2193,12 @@
             <input type="tel" id="delivery-phone" required maxlength="22" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm" placeholder="+7(999)123-45-67" />
           </div>
           <div>
-            <label class="block text-amber-300 text-sm font-medium mb-2">Адрес доставки <span class="text-red-400">*</span></label>
+            <div class="flex flex-wrap items-end justify-between gap-2 mb-2">
+              <label class="block text-amber-300 text-sm font-medium">Адрес доставки <span class="text-red-400">*</span></label>
+              <button type="button" id="delivery-map-open" class="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0 bg-[rgba(14,20,32,0.62)] border border-[rgba(142,200,255,0.28)] text-[#8ec8ff] hover:bg-[rgba(110,176,240,0.12)] hover:border-[rgba(142,200,255,0.42)] transition">
+                <i class="fas fa-map-marker-alt mr-1 text-[#b0d9ff]"></i>На карте
+              </button>
+            </div>
             <textarea id="delivery-address" required maxlength="500" rows="3" class="w-full p-3 rounded-lg bg-slate-700 bg-opacity-70 border border-amber-700 focus:outline-none focus:ring-2 focus:ring-sky-400/50 placeholder:text-slate-400/55 text-white text-sm resize-none" placeholder="Укажите адрес доставки"></textarea>
           </div>
           <div>
@@ -2166,6 +2235,30 @@
             Продолжая оформление заказа, вы соглашаетесь с<br/>
             <a href="#" class="text-amber-400 hover:text-amber-300 underline">Политикой обработки персональных данных</a>
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Выбор адреса на карте — палитра «белое золото / серебро / лёд» как в каталоге -->
+    <div id="delivery-map-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center pb-24" role="dialog" aria-modal="true" aria-labelledby="delivery-map-title">
+      <div id="delivery-map-modal-content" class="bg-slate-800 rounded-2xl p-6 max-w-md w-full mx-4 border border-[rgba(142,200,255,0.22)] max-h-[85vh] overflow-y-auto shadow-[0_16px_48px_rgba(0,0,0,0.42)]">
+        <div class="flex justify-between items-center mb-4">
+          <h3 id="delivery-map-title" class="text-xl font-bold text-[#f2ebe1] tracking-tight">Адрес на карте</h3>
+          <button type="button" id="delivery-map-close-x" class="text-[#8ec8ff] hover:text-[#d4e9ff] transition p-1 rounded-lg hover:bg-white/5" aria-label="Закрыть">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <p class="text-[11px] text-[#b8c4d4] mb-4 leading-snug">Укажите город и улицу, выберите вариант из списка или перетащите метку на карте.</p>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="delivery-map-search" maxlength="200" class="flex-1 w-full p-3 rounded-lg bg-slate-700/70 border border-[rgba(142,200,255,0.22)] focus:outline-none focus:ring-2 focus:ring-[rgba(110,176,240,0.45)] placeholder:text-slate-400/55 text-white text-sm" placeholder="Например: Краснодар Московская 25" autocomplete="street-address" />
+          <button type="button" id="delivery-map-search-btn" class="aurum-map-cta shrink-0 px-4 py-3 rounded-lg text-sm font-bold transition transform hover:scale-[1.02]">Найти</button>
+        </div>
+        <div id="delivery-map-results" class="hidden max-h-32 overflow-y-auto rounded-lg border border-[rgba(142,200,255,0.18)] bg-[rgba(8,12,20,0.45)] mb-3 text-sm"></div>
+        <div id="delivery-map-container" class="w-full h-52 rounded-lg border border-[rgba(142,200,255,0.22)] overflow-hidden bg-[rgba(8,12,20,0.88)] z-0 ring-1 ring-white/5"></div>
+        <p id="delivery-map-status" class="text-[11px] text-[#b8c4d4] mt-2 min-h-[1.25rem] leading-snug"></p>
+        <div class="flex flex-col gap-3 mt-5">
+          <button type="button" id="delivery-map-apply" class="aurum-map-cta w-full py-3 rounded-xl font-bold transition transform hover:scale-[1.01]">Подставить в адрес</button>
+          <button type="button" id="delivery-map-cancel" class="w-full py-3 rounded-xl font-bold transition border border-[rgba(142,200,255,0.22)] bg-[rgba(14,20,32,0.55)] text-[#f2ebe1] hover:bg-[rgba(110,176,240,0.08)] hover:border-[rgba(142,200,255,0.32)]">Отмена</button>
         </div>
       </div>
     </div>
@@ -2410,7 +2503,7 @@
   // window.API_URL = 'https://your-public-api-domain/api';
 </script>
 <!-- API модуль (загружается перед основным скриптом) -->
-<script src="js/api.js"></script>
+<script src="js/api.js?v=20260512"></script>
 <script>
   // маленькая обёртка для безопасного доступа к Telegram.WebApp, если он присутствует
   function safeTelegram() {
@@ -4915,6 +5008,72 @@ function isConfigChanged(productId, config){
 // -----------------------------
 // Классы состояния: Cart & Favorites
 // -----------------------------
+function aurumCartDidMutate() {
+  showCartBadge();
+  try {
+    refreshVisibleCatalogCartUi();
+  } catch (e) {
+    console.warn('refreshVisibleCatalogCartUi:', e);
+  }
+  try {
+    if (typeof window.__aurumConfiguratorCartRefresh === 'function') window.__aurumConfiguratorCartRefresh();
+  } catch (e2) {
+    /* ignore */
+  }
+}
+
+function cartQtyForPlainProduct(productId) {
+  const id = String(productId);
+  const found = cart.items.find((i) => String(i.id) === id);
+  if (!found) return 0;
+  if (id.startsWith('config-') || id.startsWith('pc-')) return 0;
+  return Math.max(0, Math.floor(Number(found.qty) || 0));
+}
+
+function applyAddCartButtonVisual(btn, productId) {
+  if (!btn) return;
+  const q = cartQtyForPlainProduct(productId);
+  const isIcon = !!btn.querySelector('.fa-shopping-cart');
+  btn.classList.toggle('add-cart--active', q > 0);
+  if (isIcon) {
+    let badge = btn.querySelector('.aurum-cart-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className =
+        'aurum-cart-badge pointer-events-none absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 px-1 rounded-full bg-[#6eb0f0] text-[#0b1220] text-[10px] font-bold leading-4 text-center';
+      btn.appendChild(badge);
+    }
+    badge.textContent = String(q);
+    badge.classList.toggle('hidden', q <= 0);
+    btn.setAttribute('title', q > 0 ? `В корзине: ${q}` : 'В корзину');
+  } else {
+    btn.textContent = q > 0 ? `В корзине (${q})` : 'В корзину';
+    btn.setAttribute('title', q > 0 ? `В корзине: ${q} шт.` : 'В корзину');
+  }
+}
+
+function refreshVisibleCatalogCartUi() {
+  const active = document.querySelector('.tab[aria-hidden="false"]');
+  if (!active || !active.id) return;
+  if (active.id === 'search-results') {
+    const list = Array.isArray(AURUM_LAST_SEARCH_PRODUCTS) ? AURUM_LAST_SEARCH_PRODUCTS : [];
+    try {
+      renderProducts(list, '#search-list');
+    } catch (e) {
+      console.warn('refreshVisibleCatalogCartUi search:', e);
+    }
+    return;
+  }
+  const m = /^category-(4k|2k|fullhd)-products$/.exec(active.id);
+  if (!m) return;
+  const cid = m[1];
+  try {
+    void applyAllFilters(cid);
+  } catch (e) {
+    console.warn('refreshVisibleCatalogCartUi:', e);
+  }
+}
+
 class Cart {
   constructor(storageKey='aurum_cart'){
     this.key = storageKey;
@@ -4926,11 +5085,38 @@ class Cart {
     if(found) found.qty += qty; else this.items.push({id: productId, qty});
     safeLocalStorageSet(this.key, this.items);
     scheduleUserStateSyncFromLocal();
+    aurumCartDidMutate();
   }
   // удалить товар полностью
-  remove(productId){ this.items = this.items.filter(i=>String(i.id)!==String(productId)); safeLocalStorageSet(this.key,this.items); scheduleUserStateSyncFromLocal(); }
+  remove(productId){
+    const sid = String(productId);
+    this.items = this.items.filter(i=>String(i.id)!==sid);
+    safeLocalStorageSet(this.key,this.items);
+    if (sid.startsWith('config-')) {
+      try {
+        localStorage.removeItem(`config_${sid}`);
+      } catch (e) { /* ignore */ }
+    }
+    scheduleUserStateSyncFromLocal();
+    aurumCartDidMutate();
+  }
+  setQty(productId, qty) {
+    const q = Math.max(0, Math.floor(Number(qty) || 0));
+    const sid = String(productId);
+    const found = this.items.find((i) => String(i.id) === sid);
+    if (q === 0) {
+      if (found) this.remove(productId);
+      return;
+    }
+    if (found) {
+      found.qty = q;
+      safeLocalStorageSet(this.key, this.items);
+      scheduleUserStateSyncFromLocal();
+      aurumCartDidMutate();
+    }
+  }
   // очистить корзину
-  clear(){ this.items = []; safeLocalStorageSet(this.key, this.items); scheduleUserStateSyncFromLocal(); }
+  clear(){ this.items = []; safeLocalStorageSet(this.key, this.items); scheduleUserStateSyncFromLocal(); aurumCartDidMutate(); }
   // вернуть расширенный список товаров (объект продукта + qty)
   getItemsFull(){
     return this.items.map(it => {
@@ -5059,6 +5245,12 @@ function applyUserStateFromServerPayload(state) {
   if (cartEl && cartEl.getAttribute('aria-hidden') === 'false') renderCart();
   if (favEl && favEl.getAttribute('aria-hidden') === 'false') renderFavorites();
   refreshVisibleCatalogFavoriteUi();
+  refreshVisibleCatalogCartUi();
+  try {
+    if (typeof window.__aurumConfiguratorCartRefresh === 'function') window.__aurumConfiguratorCartRefresh();
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function refreshVisibleCatalogFavoriteUi() {
@@ -5174,7 +5366,7 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
         </div>
         <div class="flex items-center justify-between mt-auto gap-2 flex-shrink-0">
           <div class="flex gap-1.5 flex-1">
-            <button type="button" class="add-cart text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${p.id}" title="В корзину">
+            <button type="button" class="add-cart relative text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${p.id}" title="В корзину">
               <i class="fas fa-shopping-cart text-sm"></i>
             </button>
             <button type="button" class="add-fav text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${p.id}" title="В избранное" aria-pressed="false">
@@ -5191,7 +5383,6 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
       cartBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         cart.add(p.id, 1);
-        showCartBadge();
         cartBtn.classList.add('pop');
         setTimeout(() => cartBtn.classList.remove('pop'), 480);
       });
@@ -5233,6 +5424,7 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
         alert('Для этого товара детальная страница пока недоступна');
       });
 
+      applyAddCartButtonVisual(cartBtn, p.id);
       frag.appendChild(card);
       return;
     }
@@ -5251,7 +5443,7 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
         <div class="text-lg font-bold text-amber-400">${formatPrice(p.price)}</div>
         <div class="mt-2 flex gap-2 justify-end">
           <button class="add-fav ${listFavActive ? 'text-red-500' : 'text-amber-300'}" data-id="${p.id}" aria-pressed="${listFavActive}"><i class="fas fa-heart"></i></button>
-          <button class="add-cart bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-semibold" data-id="${p.id}">В корзину</button>
+          <button class="add-cart relative bg-amber-500 text-slate-900 px-3 py-1 rounded-md font-semibold" data-id="${p.id}">В корзину</button>
         </div>
       </div>
     `;
@@ -5259,7 +5451,6 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
     // добавляем обработчики событий напрямую — их немного, это упрощает управление состоянием
     el.querySelector('.add-cart').addEventListener('click', (e)=>{
       cart.add(p.id, 1);
-      showCartBadge();
       // небольшая анимация на кнопке
       e.currentTarget.classList.add('pop');
       setTimeout(()=>e.currentTarget.classList.remove('pop'), 480);
@@ -5295,6 +5486,7 @@ function renderProducts(list=PRODUCTS, where='#product-list'){
       });
     });
 
+    applyAddCartButtonVisual(el.querySelector('.add-cart'), p.id);
     frag.appendChild(el);
   });
 
@@ -5345,6 +5537,52 @@ function confirmRemoveCartItem(itemTitle) {
   const yesBtn = qs('#cart-remove-confirm-yes');
   const noBtn = qs('#cart-remove-confirm-no');
   if (textEl) textEl.textContent = `Удалить товар ${itemTitle} из корзины?`;
+
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      yesBtn?.removeEventListener('click', onYes);
+      noBtn?.removeEventListener('click', onNo);
+      overlay.removeEventListener('click', onOverlay);
+    };
+    const onYes = () => { cleanup(); resolve(true); };
+    const onNo = () => { cleanup(); resolve(false); };
+    const onOverlay = (e) => {
+      if (e.target === overlay) onNo();
+    };
+    yesBtn?.addEventListener('click', onYes);
+    noBtn?.addEventListener('click', onNo);
+    overlay.addEventListener('click', onOverlay);
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+  });
+}
+
+function confirmCancelUserOrder(orderNumberLabel) {
+  const modalId = 'order-cancel-confirm-modal';
+  let overlay = qs(`#${modalId}`);
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = modalId;
+    overlay.className = 'fixed inset-0 z-[90] bg-black/55 hidden items-center justify-center px-4';
+    overlay.innerHTML = `
+      <div class="w-full max-w-md rounded-2xl bg-slate-900/95 border border-slate-600/60 p-4 shadow-2xl">
+        <p id="order-cancel-confirm-text" class="text-lg sm:text-xl font-semibold text-white leading-snug mb-2"></p>
+        <p class="text-sm text-slate-300/90 leading-snug mb-4">Статус заказа станет «Отменён». При оплате с внутреннего счёта сумма вернётся на счёт в приложении (если применимо).</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="order-cancel-confirm-yes" type="button" class="h-12 rounded-lg bg-red-500 hover:bg-red-600 text-white text-base font-bold transition">Отменить заказ</button>
+          <button id="order-cancel-confirm-no" type="button" class="h-12 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-base font-bold transition">Нет</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  const textEl = qs('#order-cancel-confirm-text');
+  const yesBtn = qs('#order-cancel-confirm-yes');
+  const noBtn = qs('#order-cancel-confirm-no');
+  if (textEl) textEl.textContent = `Отменить заказ ${orderNumberLabel}?`;
 
   return new Promise((resolve) => {
     const cleanup = () => {
@@ -5588,10 +5826,13 @@ function renderCart(){
         const shouldRemove = await confirmRemoveCartItem(title);
         if (!shouldRemove) return;
         cart.remove(id);
+        renderCart();
+        return;
       }
       safeLocalStorageSet(cart.key, cart.items);
       scheduleUserStateSyncFromLocal();
-      renderCart(); showCartBadge();
+      renderCart();
+      aurumCartDidMutate();
     });
   });
 
@@ -5784,10 +6025,215 @@ function validateAddressField(addr, required) {
   if (s.length < 10 || s.length > 500) {
     return { valid: false, message: 'Адрес: от 10 до 500 символов' };
   }
-  if (!/^[а-яёА-ЯЁa-zA-Z0-9\s\-.,№#/()'«»:;]+$/.test(s)) {
+  if (!/^[а-яёА-ЯЁa-zA-Z0-9\s\-.,№#/()'«»:;&"–—]+$/.test(s)) {
     return { valid: false, message: 'Адрес содержит недопустимые символы' };
   }
   return { valid: true };
+}
+
+window.__aurumDeliveryMap = { map: null, marker: null, picked: '', lastSearch: 0 };
+
+function aurumDeliveryMapSetSwipeLocked(locked) {
+  try {
+    var tg = typeof safeTelegram === 'function' ? safeTelegram() : null;
+    if (!tg) return;
+    if (locked && typeof tg.disableVerticalSwipes === 'function') {
+      tg.disableVerticalSwipes();
+    } else if (!locked && typeof tg.enableVerticalSwipes === 'function') {
+      tg.enableVerticalSwipes();
+    }
+  } catch (e) {}
+}
+
+function aurumEnsureLeafletCss() {
+  if (document.querySelector('link[data-aurum-leaflet-css]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  link.setAttribute('data-aurum-leaflet-css', '1');
+  document.head.appendChild(link);
+}
+
+function aurumLoadLeafletJs() {
+  return new Promise(function (resolve, reject) {
+    if (window.L) {
+      resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = function () {
+      resolve();
+    };
+    s.onerror = function () {
+      reject(new Error('Leaflet'));
+    };
+    document.body.appendChild(s);
+  });
+}
+
+function aurumSetDeliveryMapStatus(msg) {
+  const el = qs('#delivery-map-status');
+  if (el) el.textContent = msg || '';
+}
+
+function aurumReverseGeocode(lat, lng) {
+  const url =
+    'https://nominatim.openstreetmap.org/reverse?lat=' +
+    encodeURIComponent(lat) +
+    '&lon=' +
+    encodeURIComponent(lng) +
+    '&format=jsonv2&accept-language=ru';
+  return fetch(url)
+    .then(function (r) {
+      return r.json();
+    })
+    .then(function (j) {
+      return (j && (j.display_name || j.name)) || '';
+    })
+    .catch(function () {
+      return '';
+    });
+}
+
+function aurumOpenDeliveryMapModal() {
+  const modal = qs('#delivery-map-modal');
+  const results = qs('#delivery-map-results');
+  if (!modal) return;
+  if (results) {
+    results.classList.add('hidden');
+    results.innerHTML = '';
+  }
+  const curAddr = qs('#delivery-address');
+  window.__aurumDeliveryMap.picked = (curAddr && curAddr.value.trim()) || '';
+  aurumSetDeliveryMapStatus(
+    window.__aurumDeliveryMap.picked ? 'Можно заменить адрес: выберите вариант ниже или перетащите метку.' : '',
+  );
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  aurumDeliveryMapSetSwipeLocked(true);
+  aurumEnsureLeafletCss();
+  aurumLoadLeafletJs()
+    .then(function () {
+      const L = window.L;
+      const wrap = qs('#delivery-map-container');
+      if (!wrap || !L) return;
+      const lat0 = 45.0355;
+      const lng0 = 38.9753;
+      if (!window.__aurumDeliveryMap.map) {
+        window.__aurumDeliveryMap.map = L.map(wrap, {
+          zoomControl: true,
+          attributionControl: false,
+        }).setView([lat0, lng0], 11);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '',
+        }).addTo(window.__aurumDeliveryMap.map);
+        window.__aurumDeliveryMap.marker = L.marker([lat0, lng0], { draggable: true }).addTo(window.__aurumDeliveryMap.map);
+        window.__aurumDeliveryMap.marker.on('dragend', function () {
+          const ll = window.__aurumDeliveryMap.marker.getLatLng();
+          aurumSetDeliveryMapStatus('Определение адреса…');
+          aurumReverseGeocode(ll.lat, ll.lng).then(function (name) {
+            if (name) {
+              window.__aurumDeliveryMap.picked = name;
+              aurumSetDeliveryMapStatus('Выбрано: ' + name);
+            } else {
+              window.__aurumDeliveryMap.picked =
+                'Координаты: ' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5);
+              aurumSetDeliveryMapStatus('Адрес по метке не найден; подставлены координаты — при необходимости уточните текст.');
+            }
+          });
+        });
+      } else {
+        const dm = window.__aurumDeliveryMap.map;
+        if (dm.attributionControl) {
+          try {
+            dm.removeControl(dm.attributionControl);
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        dm.invalidateSize();
+        if (window.__aurumDeliveryMap.marker) {
+          dm.setView(window.__aurumDeliveryMap.marker.getLatLng(), 11);
+        }
+      }
+      setTimeout(function () {
+        if (window.__aurumDeliveryMap.map) window.__aurumDeliveryMap.map.invalidateSize();
+      }, 200);
+    })
+    .catch(function () {
+      aurumSetDeliveryMapStatus('Не удалось загрузить карту. Проверьте сеть.');
+    });
+}
+
+function aurumCloseDeliveryMapModal() {
+  const modal = qs('#delivery-map-modal');
+  if (!modal) return;
+  aurumDeliveryMapSetSwipeLocked(false);
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function aurumNominatimSearchTyped() {
+  const qEl = qs('#delivery-map-search');
+  const q = qEl && qEl.value.trim();
+  const results = qs('#delivery-map-results');
+  if (!q) {
+    alert('Введите запрос для поиска (город, улица, дом).');
+    return;
+  }
+  const now = Date.now();
+  if (now - window.__aurumDeliveryMap.lastSearch < 1100) {
+    aurumSetDeliveryMapStatus('Подождите секунду перед повторным запросом (лимит сервиса поиска).');
+    return;
+  }
+  window.__aurumDeliveryMap.lastSearch = now;
+  aurumSetDeliveryMapStatus('Поиск…');
+  const url =
+    'https://nominatim.openstreetmap.org/search?q=' +
+    encodeURIComponent(q) +
+    '&format=jsonv2&accept-language=ru&limit=8';
+  fetch(url)
+    .then(function (r) {
+      return r.json();
+    })
+    .then(function (arr) {
+      if (!Array.isArray(arr) || !arr.length) {
+        aurumSetDeliveryMapStatus('Ничего не найдено. Уточните запрос.');
+        if (results) {
+          results.classList.add('hidden');
+          results.innerHTML = '';
+        }
+        return;
+      }
+      aurumSetDeliveryMapStatus('Выберите вариант из списка или перетащите метку на карте.');
+      if (!results) return;
+      results.classList.remove('hidden');
+      results.innerHTML = '';
+      const L = window.L;
+      arr.forEach(function (it) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className =
+          'block w-full text-left px-3 py-2.5 border-b border-[rgba(142,200,255,0.14)] text-[#f2ebe1] text-xs leading-snug hover:bg-[rgba(110,176,240,0.1)] transition';
+        b.textContent = String(it.display_name || it.name || 'Без названия');
+        b.addEventListener('click', function () {
+          if (!L || !window.__aurumDeliveryMap.map || !window.__aurumDeliveryMap.marker) return;
+          const la = parseFloat(it.lat);
+          const lo = parseFloat(it.lon);
+          if (!Number.isFinite(la) || !Number.isFinite(lo)) return;
+          window.__aurumDeliveryMap.marker.setLatLng([la, lo]);
+          window.__aurumDeliveryMap.map.setView([la, lo], 16);
+          window.__aurumDeliveryMap.picked = String(it.display_name || '').trim();
+          aurumSetDeliveryMapStatus('Выбрано: ' + window.__aurumDeliveryMap.picked);
+        });
+        results.appendChild(b);
+      });
+    })
+    .catch(function () {
+      aurumSetDeliveryMapStatus('Ошибка поиска. Проверьте соединение.');
+    });
 }
 
 function validateOrderCommentField(comment) {
@@ -6362,6 +6808,9 @@ function openTab(tabId){
   }
 
   updateBackButton();
+  if (prevActive && prevActive.id === 'configurator' && tabId !== 'configurator') {
+    window.__aurumConfiguratorCartRefresh = null;
+  }
   aurumPreviousTabId = tabId;
 }
 
@@ -6820,7 +7269,7 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
       </div>
       <div class="${actionsRowClass}">
         <div class="flex gap-1.5 flex-1">
-          <button class="${cartClass} text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${product.id}" title="В корзину">
+          <button class="add-cart ${cartClass} relative text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${product.id}" title="В корзину">
             <i class="fas fa-shopping-cart text-sm"></i>
           </button>
           <button class="${favClass} text-amber-400 hover:text-amber-300 transition p-1.5 rounded-lg bg-slate-800 bg-opacity-50 border border-amber-700 border-opacity-50 flex-1" data-id="${product.id}" title="В избранное" aria-pressed="false">
@@ -6838,7 +7287,6 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
     cartBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       cart.add(product.id, 1);
-      showCartBadge();
       cartBtn.classList.add('pop');
       setTimeout(() => cartBtn.classList.remove('pop'), 480);
     });
@@ -6873,6 +7321,7 @@ function renderCategoryProductsFiltered(categoryId, products = CATEGORY_PRODUCTS
       openConfigurator(product.id);
     });
 
+    applyAddCartButtonVisual(cartBtn, product.id);
     frag.appendChild(card);
   });
 
@@ -6932,10 +7381,67 @@ function renderConfigurator(productId, config){
            currentConfig.warranty.price;
   }
 
+  function buildConfigSnapshotKeyFrom(cc) {
+    return [cc.cpu?.name, cc.gpu?.name, cc.ssd?.name, cc.warranty?.name].join('|');
+  }
+
+  function buildConfigSnapshotKey() {
+    return buildConfigSnapshotKeyFrom(currentConfig);
+  }
+
+  function buildConfigBlobForStorage(unitPrice) {
+    return {
+      productId: productId,
+      baseName: config.name,
+      config: {
+        cpu: currentConfig.cpu,
+        gpu: currentConfig.gpu,
+        ssd: currentConfig.ssd,
+        warranty: currentConfig.warranty,
+      },
+      price: unitPrice,
+      image: resolveProductImageSrc(config.image, config),
+    };
+  }
+
+  let configuratorCartSession = null;
+
+  function resetConfiguratorCartUi() {
+    configuratorCartSession = null;
+    const addBtn = qs('#config-add-to-cart');
+    const ctr = qs('#config-cart-counter');
+    if (ctr) ctr.classList.add('hidden');
+    if (addBtn) {
+      addBtn.classList.remove('hidden');
+      addBtn.textContent = `В корзину ${formatPrice(calculatePrice())}`;
+    }
+  }
+
+  function refreshConfiguratorCartBar() {
+    if (!configuratorCartSession) return;
+    const sid = configuratorCartSession.id;
+    const entry = cart.items.find((i) => String(i.id) === String(sid));
+    const qty = entry ? Math.max(0, Math.floor(Number(entry.qty) || 0)) : 0;
+    if (qty <= 0) {
+      resetConfiguratorCartUi();
+      return;
+    }
+    const unit = calculatePrice();
+    safeLocalStorageSet(`config_${sid}`, buildConfigBlobForStorage(unit));
+    const qEl = qs('#config-cart-counter-qty');
+    const sEl = qs('#config-cart-counter-sum');
+    if (qEl) qEl.textContent = `${qty} шт`;
+    if (sEl) sEl.textContent = formatPrice(unit * qty);
+  }
+
   function updatePrice(){
+    if (configuratorCartSession) {
+      refreshConfiguratorCartBar();
+      return;
+    }
     const totalPrice = calculatePrice();
     const priceBtn = qs('#config-add-to-cart');
-    if(priceBtn){
+    if (priceBtn) {
       priceBtn.textContent = `В корзину ${formatPrice(totalPrice)}`;
     }
   }
@@ -7020,10 +7526,18 @@ function renderConfigurator(productId, config){
   const stickyHost = qs('#configurator-bottom-actions-inner');
   if (stickyHost) {
     stickyHost.innerHTML = `
-    <div class="flex gap-2">
+    <div class="flex gap-2 items-stretch">
       <button type="button" id="config-add-to-cart" class="flex-[2] bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 text-slate-900 py-3 rounded-xl font-bold transition transform hover:scale-105">
         В корзину ${formatPrice(calculatePrice())}
       </button>
+      <div id="config-cart-counter" class="hidden flex-[2] flex items-stretch h-auto min-h-[3rem] rounded-xl overflow-hidden border border-sky-500/35 bg-gradient-to-r from-[#4588c4] to-[#6eb0f0] shadow-inner">
+        <button type="button" id="config-cart-dec" class="w-10 sm:w-11 flex items-center justify-center bg-black/20 hover:bg-black/30 text-white text-lg font-bold shrink-0" aria-label="Меньше">−</button>
+        <div class="flex-1 flex flex-col items-center justify-center min-w-0 px-1">
+          <span id="config-cart-counter-qty" class="text-sm font-bold text-white leading-none">1 шт</span>
+          <span id="config-cart-counter-sum" class="text-[11px] text-white/95 tabular-nums leading-none mt-1">${formatPrice(calculatePrice())}</span>
+        </div>
+        <button type="button" id="config-cart-inc" class="w-10 sm:w-11 flex items-center justify-center bg-black/20 hover:bg-black/30 text-white text-lg font-bold shrink-0" aria-label="Больше">+</button>
+      </div>
       <button type="button" id="config-go-to-cart" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-3 rounded-xl font-semibold transition flex items-center justify-center">
         <i class="fas fa-shopping-cart"></i>
       </button>
@@ -7040,6 +7554,12 @@ function renderConfigurator(productId, config){
       radio.addEventListener('change', () => {
         if(radio.checked){
           const option = config.options[groupName][idx];
+          if (configuratorCartSession) {
+            const tentative = { ...currentConfig, [groupName]: option };
+            if (buildConfigSnapshotKeyFrom(tentative) !== configuratorCartSession.snapshot) {
+              resetConfiguratorCartUi();
+            }
+          }
           currentConfig[groupName] = option;
           
           // Обновляем отображение текущей конфигурации
@@ -7082,24 +7602,58 @@ function renderConfigurator(productId, config){
   });
 
   // Обработчик кнопки "В корзину"
-  qs('#config-add-to-cart').addEventListener('click', () => {
-    const totalPrice = calculatePrice();
-    // Создаем уникальный ID для конфигурированного товара
-    const configId = `config-${productId}-${Date.now()}`;
-    // Сохраняем конфигурацию в localStorage или добавляем в корзину с метаданными
-    cart.add(configId, 1);
-    // Можно сохранить конфигурацию отдельно для отображения в корзине
-    safeLocalStorageSet(`config_${configId}`, {
-      productId: productId,
-      baseName: config.name,
-      config: currentConfig,
-      price: totalPrice,
-      image: resolveProductImageSrc(config.image, config)
+  const addToCartBtn = qs('#config-add-to-cart');
+  if (addToCartBtn) {
+    addToCartBtn.addEventListener('click', () => {
+      if (configuratorCartSession) return;
+      const totalPrice = calculatePrice();
+      const configId = `config-${productId}-${Date.now()}`;
+      const blob = buildConfigBlobForStorage(totalPrice);
+      safeLocalStorageSet(`config_${configId}`, blob);
+      cart.add(configId, 1);
+      configuratorCartSession = { id: configId, snapshot: buildConfigSnapshotKey() };
+      addToCartBtn.classList.add('hidden');
+      const ctr = qs('#config-cart-counter');
+      if (ctr) {
+        ctr.classList.remove('hidden');
+        refreshConfiguratorCartBar();
+        ctr.classList.add('pop');
+        setTimeout(() => ctr.classList.remove('pop'), 480);
+      }
     });
-    showCartBadge();
-    qs('#config-add-to-cart').classList.add('pop');
-    setTimeout(() => qs('#config-add-to-cart').classList.remove('pop'), 480);
-  });
+  }
+
+  const decBtn = qs('#config-cart-dec');
+  if (decBtn) {
+    decBtn.addEventListener('click', () => {
+      if (!configuratorCartSession) return;
+      const sid = configuratorCartSession.id;
+      const entry = cart.items.find((i) => String(i.id) === String(sid));
+      if (!entry) {
+        resetConfiguratorCartUi();
+        return;
+      }
+      const q = Math.max(0, Math.floor(Number(entry.qty) || 0) - 1);
+      cart.setQty(sid, q);
+      if (q === 0) resetConfiguratorCartUi();
+      else refreshConfiguratorCartBar();
+    });
+  }
+
+  const incBtn = qs('#config-cart-inc');
+  if (incBtn) {
+    incBtn.addEventListener('click', () => {
+      if (!configuratorCartSession) return;
+      const sid = configuratorCartSession.id;
+      const entry = cart.items.find((i) => String(i.id) === String(sid));
+      if (!entry) {
+        resetConfiguratorCartUi();
+        return;
+      }
+      cart.setQty(sid, Math.floor(Number(entry.qty) || 0) + 1);
+      refreshConfiguratorCartBar();
+    });
+  }
 
   // Обработчик кнопки перехода в корзину
   qs('#config-go-to-cart').addEventListener('click', () => {
@@ -7138,6 +7692,8 @@ function renderConfigurator(productId, config){
     updateProfileFavCount();
     showFavBadge();
   });
+
+  window.__aurumConfiguratorCartRefresh = refreshConfiguratorCartBar;
 }
 
 // Открытие конфигуратора
@@ -7599,6 +8155,17 @@ function renderOrders(orders, reviewedOrderIds){
     const orderNumber = order.order_number || ('Заказ #' + order.id);
     const oid = Number(order.id);
     const hasReview = Number.isFinite(oid) && reviewed.has(oid);
+    const rawSt = String(order.order_status || 'new').trim();
+    const stKey = rawSt.toLowerCase();
+    const ruToEn = { новый: 'new', 'в обработке': 'processing', подтверждён: 'confirmed', подтвержден: 'confirmed' };
+    const stNorm = ruToEn[stKey] || stKey;
+    const canCancelStatus = ['new', 'processing', 'confirmed'].includes(stNorm);
+    const showCancelBtn = canCancelStatus && !!(window.API && window.API.orders);
+    const cancelBtnHtml = showCancelBtn
+      ? `<button type="button" class="cancel-order-btn flex-1 min-w-[6.5rem] border border-red-500/50 bg-red-500/10 hover:bg-red-500/20 text-red-200 py-2 rounded-lg font-semibold transition text-sm" data-order-id="${order.id}" data-order-label="${escapeHtmlAttrText(orderNumber)}">
+          Отменить
+        </button>`
+      : '';
     const reviewBlock = hasReview
       ? '<p class="flex-1 text-xs text-amber-300/85 text-center py-2 leading-snug">По этому заказу отзыв уже оставлен.</p>'
       : `<button type="button" class="flex-1 bg-slate-700 hover:bg-slate-600 text-amber-300 py-2 rounded-lg font-semibold transition text-sm review-order-btn" data-order-id="${order.id}">
@@ -7628,11 +8195,12 @@ function renderOrders(orders, reviewedOrderIds){
           </div>
         `).join('') : '<p class="text-sm text-amber-300/60">Товары загружаются...</p>'}
       </div>
-      <div class="pt-3 border-t border-amber-800 flex justify-between items-center mb-3">
+      <div class="flex justify-between items-center mb-1">
         <span class="text-amber-300 font-semibold">Итого:</span>
         <span class="text-xl font-bold text-amber-400">${formatPrice(order.total_amount || 0)}</span>
       </div>
-      <div class="flex gap-2 items-stretch">
+      <div class="pt-3 border-t border-amber-800/60 flex flex-wrap gap-2 items-stretch">
+        ${cancelBtnHtml}
         ${reviewBlock}
       </div>
     `;
@@ -7642,6 +8210,37 @@ function renderOrders(orders, reviewedOrderIds){
     if(reviewBtn){
       reviewBtn.addEventListener('click', () => {
         openReviewModal(order);
+      });
+    }
+
+    const cancelOrderBtn = orderCard.querySelector('.cancel-order-btn');
+    if (cancelOrderBtn) {
+      cancelOrderBtn.addEventListener('click', async () => {
+        const lbl = cancelOrderBtn.getAttribute('data-order-label') || orderNumber;
+        const confirmed = await confirmCancelUserOrder(lbl);
+        if (!confirmed) return;
+        if (!window.API || !window.API.orders || typeof window.API.orders.userCancel !== 'function') {
+          alert('Обновите мини-приложение: полностью закройте его и откройте снова из бота (или потяните вниз для перезагрузки), чтобы подтянулась новая версия.');
+          return;
+        }
+        const tid = getResolvedTelegramId();
+        if (!tid) {
+          alert('Отмена доступна при открытии приложения из Telegram (нужен ваш Telegram ID).');
+          return;
+        }
+        try {
+          cancelOrderBtn.disabled = true;
+          await window.API.orders.userCancel(Number(cancelOrderBtn.dataset.orderId), tid);
+          try {
+            if (window.API && window.API.userState) await refreshUserStateFromServer();
+          } catch (e2) {
+            console.warn('refreshUserStateFromServer after cancel:', e2);
+          }
+          await loadUserOrders();
+        } catch (e) {
+          alert(e && e.message ? e.message : 'Не удалось отменить заказ');
+          cancelOrderBtn.disabled = false;
+        }
       });
     }
     
@@ -8722,6 +9321,58 @@ function setupModals(){
         const bottomNav = qs('nav');
         if(bottomNav) bottomNav.classList.remove('hidden');
       }
+    });
+  }
+
+  const deliveryMapModal = qs('#delivery-map-modal');
+  if (deliveryMapModal && !deliveryMapModal.dataset.aurumDeliveryMapInit) {
+    deliveryMapModal.dataset.aurumDeliveryMapInit = '1';
+    const deliveryMapInner = qs('#delivery-map-modal-content');
+    if (deliveryMapInner) {
+      deliveryMapInner.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+      deliveryMapInner.addEventListener(
+        'touchstart',
+        function (e) {
+          e.stopPropagation();
+        },
+        { passive: true },
+      );
+    }
+    deliveryMapModal.addEventListener('click', function (e) {
+      if (e.target === deliveryMapModal) aurumCloseDeliveryMapModal();
+    });
+    const openMapBtn = qs('#delivery-map-open');
+    if (openMapBtn) {
+      openMapBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        aurumOpenDeliveryMapModal();
+      });
+    }
+    qs('#delivery-map-close-x')?.addEventListener('click', aurumCloseDeliveryMapModal);
+    qs('#delivery-map-cancel')?.addEventListener('click', aurumCloseDeliveryMapModal);
+    qs('#delivery-map-search-btn')?.addEventListener('click', aurumNominatimSearchTyped);
+    qs('#delivery-map-apply')?.addEventListener('click', function () {
+      const ta = qs('#delivery-address');
+      let text = (window.__aurumDeliveryMap && window.__aurumDeliveryMap.picked) || '';
+      if (!text && window.__aurumDeliveryMap && window.__aurumDeliveryMap.marker && window.L) {
+        const ll = window.__aurumDeliveryMap.marker.getLatLng();
+        text = 'Координаты: ' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5);
+      }
+      if (!text) {
+        alert('Сначала найдите адрес в списке или перетащите метку на карте.');
+        return;
+      }
+      if (ta) {
+        ta.value = text.slice(0, 500);
+        const v = validateAddressField(ta.value, true);
+        ta.classList.toggle('border-red-500', !v.valid);
+        if (!v.valid) {
+          alert(v.message || 'Адрес не прошёл проверку. Отредактируйте текст вручную при необходимости.');
+        }
+      }
+      aurumCloseDeliveryMapModal();
     });
   }
 

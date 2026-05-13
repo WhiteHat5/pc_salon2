@@ -468,7 +468,7 @@
                         </label>
                     </div>
                     <div class="flex gap-3">
-                        <button type="submit" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 py-3 px-8 rounded-xl font-bold transition">
+                        <button type="submit" id="edit-product-submit-btn" class="flex-1 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 py-3 px-8 rounded-xl font-bold transition">
                             <i class="fas fa-save mr-2"></i>Сохранить изменения
                         </button>
                         <button type="button" onclick="window.closeEditModal()" class="admin-btn-muted py-3 px-8 rounded-xl font-bold">
@@ -1182,6 +1182,92 @@
             showMessage(msg);
         }
 
+        function adminPendingDiffRows(product) {
+            const pv = product.pending_preview || {};
+            const rows = [];
+            const s = (v) => (v === undefined || v === null ? '' : String(v)).trim();
+            const catLabel = (cid) => adminEscapeHtml(ADMIN_CATEGORY_LABELS[adminCategoryKey({ category_id: cid })] || cid || '—');
+            const priceN = (x) => Math.round(parseFloat(x) || 0);
+            const nm = (a, b) => s(a) !== s(b);
+            if (nm(product.name, pv.name)) {
+                rows.push({
+                    label: 'Название',
+                    oldV: adminEscapeHtml(s(product.name)),
+                    newV: adminEscapeHtml(s(pv.name)),
+                });
+            }
+            if (priceN(product.price) !== priceN(pv.price) && pv.price !== undefined && pv.price !== null) {
+                rows.push({
+                    label: 'Цена',
+                    oldV: `${priceN(product.price).toLocaleString('ru-RU')} ₽`,
+                    newV: `${priceN(pv.price).toLocaleString('ru-RU')} ₽`,
+                });
+            }
+            const c0 = s(product.category_id).toLowerCase();
+            const c1 = s(pv.category_id).toLowerCase();
+            if (c1 && c0 !== c1) {
+                rows.push({ label: 'Категория', oldV: catLabel(product.category_id), newV: catLabel(pv.category_id) });
+            }
+            if (nm(product.cpu, pv.cpu)) {
+                rows.push({ label: 'CPU', oldV: adminEscapeHtml(s(product.cpu)) || '—', newV: adminEscapeHtml(s(pv.cpu)) || '—' });
+            }
+            if (nm(product.gpu, pv.gpu)) {
+                rows.push({ label: 'GPU', oldV: adminEscapeHtml(s(product.gpu)) || '—', newV: adminEscapeHtml(s(pv.gpu)) || '—' });
+            }
+            const d0 = s(product.description).replace(/\s+/g, ' ');
+            const d1 = s(pv.description).replace(/\s+/g, ' ');
+            if (d0 !== d1 && (d1 || d0)) {
+                rows.push({
+                    label: 'Описание',
+                    oldV: adminEscapeHtml(d0.slice(0, 220)) + (d0.length > 220 ? '…' : ''),
+                    newV: adminEscapeHtml(d1.slice(0, 280)) + (d1.length > 280 ? '…' : ''),
+                });
+            }
+            const a0 = !!product.is_active;
+            const a1 = pv.is_active !== undefined && pv.is_active !== null ? !!pv.is_active : a0;
+            if (a0 !== a1) {
+                rows.push({
+                    label: 'Активен',
+                    oldV: a0 ? 'да' : 'нет',
+                    newV: a1 ? 'да' : 'нет',
+                });
+            }
+            if (pv.image_changed) {
+                rows.push({
+                    label: 'Изображение',
+                    oldV: 'текущее',
+                    newV: 'замена (файл или путь в правках)',
+                });
+            }
+            return rows;
+        }
+
+        function adminBuildPendingDiffHtml(product, opts) {
+            const compact = !!(opts && opts.compact);
+            const rows = adminPendingDiffRows(product);
+            if (!rows.length) return '';
+            if (compact) {
+                const bits = rows.slice(0, 3).map((r) => {
+                    if (r.label === 'Описание') return `${r.label}: обновлено`;
+                    if (r.label === 'Изображение') return r.label;
+                    return `${r.label}: ${r.oldV} → ${r.newV}`;
+                });
+                let tail = rows.length > 3 ? ` +ещё ${rows.length - 3}` : '';
+                return `<div class="mt-2 rounded-lg border border-sky-500/25 bg-[rgba(8,12,20,0.55)] px-2.5 py-2 text-[11px] leading-snug"><span class="text-[10px] uppercase tracking-wide text-amber-200/85 font-semibold">Правки</span><span class="text-[#b8c4d4]"> · ${bits.join(' · ')}${tail}</span></div>`;
+            }
+            const blocks = rows
+                .map(
+                    (r) => `
+                <div class="rounded-lg border-l-2 border-amber-400/45 bg-[rgba(8,12,20,0.42)] pl-2.5 pr-2 py-2">
+                    <div class="text-[10px] uppercase tracking-wide text-amber-200/80 font-semibold mb-1">${adminEscapeHtml(r.label)}</div>
+                    <div class="text-[11px] text-[#94a3b8] line-through decoration-amber-900/40">${r.oldV}</div>
+                    <div class="text-xs text-[#f2ebe1] font-medium mt-0.5">${r.newV}</div>
+                </div>`,
+                )
+                .join('');
+            return `<div class="mt-3 space-y-2">${blocks}</div>`;
+        }
+
         function refreshModerationPanel() {
             const panel = document.getElementById('moderation-panel');
             const queue = document.getElementById('moderation-queue');
@@ -1198,22 +1284,24 @@
             }
             panel.classList.remove('hidden');
             if (nav) nav.classList.remove('hidden');
-            const pending = (currentProducts || []).filter((p) => String(p.moderation_status || '').toLowerCase() === 'pending');
+            const pendingNew = (currentProducts || []).filter((p) => String(p.moderation_status || '').toLowerCase() === 'pending');
+            const pendingEdits = (currentProducts || []).filter((p) => !!p.has_pending_update);
+            const showEmpty = pendingNew.length === 0 && pendingEdits.length === 0;
             if (empty) {
-                empty.classList.toggle('hidden', pending.length === 0);
+                empty.classList.toggle('hidden', !showEmpty);
             }
             if (!queue) return;
-            if (!pending.length) {
+            if (showEmpty) {
                 queue.innerHTML = '';
                 return;
             }
-            queue.innerHTML = pending
-                .map((p) => {
-                    const name = adminEscapeHtml(p.name || '');
-                    const price = Math.round(parseFloat(p.price) || 0).toLocaleString('ru-RU');
-                    const cat = adminEscapeHtml(ADMIN_CATEGORY_LABELS[adminCategoryKey(p)] || p.category_id || '');
-                    return `<div class="admin-readonly-box flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+            function cardNew(p) {
+                const name = adminEscapeHtml(p.name || '');
+                const price = Math.round(parseFloat(p.price) || 0).toLocaleString('ru-RU');
+                const cat = adminEscapeHtml(ADMIN_CATEGORY_LABELS[adminCategoryKey(p)] || p.category_id || '');
+                return `<div class="admin-readonly-box flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
             <div class="min-w-0">
+                <div class="text-xs uppercase tracking-wide text-sky-300/90 mb-1">Новая карточка</div>
                 <div class="font-semibold text-[#f2ebe1]">${name}</div>
                 <div class="text-sm text-[#b8c4d4]">${cat} · ${price} ₽ · id ${p.id}</div>
             </div>
@@ -1223,8 +1311,40 @@
                 <button type="button" class="admin-btn-danger text-sm py-2 px-3 rounded-xl" onclick="window.aurumModerateProduct(${p.id}, false)"><i class="fas fa-times mr-1"></i>Отклонить</button>
             </div>
         </div>`;
-                })
-                .join('');
+            }
+            function cardEdit(p) {
+                const pv = p.pending_preview || {};
+                const name = adminEscapeHtml(pv.name || p.name || '');
+                const price = Math.round(parseFloat(pv.price != null ? pv.price : p.price) || 0).toLocaleString('ru-RU');
+                const cat = adminEscapeHtml(ADMIN_CATEGORY_LABELS[adminCategoryKey(p)] || p.category_id || '');
+                const diffHtml = adminBuildPendingDiffHtml(p, { compact: false });
+                return `<div class="admin-readonly-box flex flex-col gap-3">
+            <div class="min-w-0 flex-1 space-y-1">
+                <div class="text-xs uppercase tracking-wide text-amber-200/90">Правки к опубликованному товару</div>
+                <div class="font-semibold text-[#f2ebe1]">${name}</div>
+                <div class="text-sm text-[#b8c4d4]">${cat} · ${price} ₽ · id ${p.id}</div>
+                <div class="rounded-xl border border-amber-500/20 bg-[rgba(8,12,20,0.35)] px-3 py-2">
+                    <div class="text-[10px] uppercase tracking-wide text-amber-200/75 font-semibold mb-2">Что меняет менеджер</div>
+                    ${diffHtml || '<p class="text-xs text-[#8b97ab]">Нет отличий от текущей версии (проверьте данные на сервере).</p>'}
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="admin-btn-ice text-sm py-2 px-3 rounded-xl" onclick="window.editProduct(${p.id})"><i class="fas fa-edit mr-1"></i>Открыть карточку</button>
+                <button type="button" class="admin-btn-ice text-sm py-2 px-3 rounded-xl" onclick="window.aurumModerateProduct(${p.id}, true)"><i class="fas fa-check mr-1"></i>Принять правки</button>
+                <button type="button" class="admin-btn-danger text-sm py-2 px-3 rounded-xl" onclick="window.aurumModerateProduct(${p.id}, false)"><i class="fas fa-times mr-1"></i>Отклонить правки</button>
+            </div>
+        </div>`;
+            }
+            const parts = [];
+            if (pendingNew.length) {
+                parts.push('<p class="text-sm font-semibold text-[#8ec8ff] mb-2">Новые карточки</p>');
+                parts.push(pendingNew.map(cardNew).join(''));
+            }
+            if (pendingEdits.length) {
+                parts.push('<p class="text-sm font-semibold text-[#8ec8ff] mt-4 mb-2">Правки менеджеров</p>');
+                parts.push(pendingEdits.map(cardEdit).join(''));
+            }
+            queue.innerHTML = parts.join('');
         }
 
         window.aurumModerateProduct = async function (id, approve) {
@@ -1267,16 +1387,26 @@
             const mod = String(product.moderation_status || 'approved').toLowerCase();
             const pending = mod === 'pending';
             const rejected = mod === 'rejected';
+            const editPending = !!product.has_pending_update;
             const badge = pending
                 ? '<span class="ml-2 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/30">На модерации</span>'
                 : rejected
                   ? '<span class="ml-2 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/25">Отклонено</span>'
-                  : '';
+                  : editPending
+                    ? '<span class="ml-2 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-sky-500/25 text-sky-100 border border-sky-400/30">Правки на согласовании</span>'
+                    : '';
             const mgrPending = ar === 'manager' && pending;
             const toggleCls = mgrPending
                 ? 'opacity-45 cursor-not-allowed pointer-events-none'
                 : 'cursor-pointer';
             const activeCls = product.is_active ? 'bg-emerald-600/90 hover:bg-emerald-600' : 'bg-red-600/90 hover:bg-red-600';
+            const delBtn =
+                ar === 'super'
+                    ? `<button type="button" onclick="window.deleteProduct(${product.id})" class="admin-btn-danger min-w-[40px] h-10 px-0 justify-center rounded-xl" title="Удалить товар">
+                            <i class="fas fa-trash"></i>
+                        </button>`
+                    : '';
+            const diffSuper = ar === 'super' && editPending ? adminBuildPendingDiffHtml(product, { compact: true }) : '';
             return `
                 <div class="admin-panel rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                     <img src="${mediaUrl(product.image, product.id)}" alt="${name}" class="w-full sm:w-20 h-40 sm:h-20 object-cover rounded-xl bg-[rgba(8,12,20,0.88)] border border-white/10" onerror="this.src='/photo/4K.png'">
@@ -1284,6 +1414,7 @@
                         <h3 class="font-bold text-[#f2ebe1]">${name}${badge}</h3>
                         <p class="text-sm text-[#b8c4d4]">${cpu}${cpu && gpu ? ' · ' : ''}${gpu}</p>
                         <p class="text-[#8ec8ff] font-bold mt-1">${Math.round(parseFloat(product.price) || 0).toLocaleString('ru-RU')} ₽</p>
+                        ${diffSuper}
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
                         <button type="button" onclick="window.toggleActive(${product.id}, ${product.is_active ? 0 : 1})" class="px-3 py-1.5 rounded-full text-xs font-medium transition ${activeCls} ${toggleCls} text-white border border-white/15 min-w-[80px]" ${mgrPending ? 'disabled' : ''} title="${mgrPending ? 'Сначала одобрите карточку (super)' : ''}">
@@ -1292,9 +1423,7 @@
                         <button type="button" onclick="window.editProduct(${product.id})" class="admin-btn-ice min-w-[40px] h-10 px-0 justify-center rounded-xl" title="Редактировать товар">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button type="button" onclick="window.deleteProduct(${product.id})" class="admin-btn-danger min-w-[40px] h-10 px-0 justify-center rounded-xl" title="Удалить товар">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${delBtn}
                     </div>
                 </div>
             `;
@@ -1853,6 +1982,20 @@
             document.getElementById('edit-description-template').value = '';
             adminLoadConfigEditorsFromProduct(product, 'edit-');
 
+            const submitBtnEl = document.getElementById('edit-product-submit-btn');
+            if (submitBtnEl) {
+                let arEd = '';
+                try {
+                    arEd = sessionStorage.getItem('aurum_admin_role') || '';
+                } catch (e2) {}
+                const modEd = String(product.moderation_status || 'approved').toLowerCase();
+                if (arEd === 'manager' && modEd === 'approved') {
+                    submitBtnEl.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Отправить на согласование';
+                } else {
+                    submitBtnEl.innerHTML = '<i class="fas fa-save mr-2"></i>Сохранить изменения';
+                }
+            }
+
             // Показываем модальное окно
             const modal = document.getElementById('edit-modal');
             modal.classList.remove('hidden');
@@ -1883,6 +2026,23 @@
             if (submitBtn) submitBtn.disabled = true;
 
             const productId = document.getElementById('edit-product-id').value;
+            let arSub = '';
+            try {
+                arSub = sessionStorage.getItem('aurum_admin_role') || '';
+            } catch (e0) {}
+            const curP = (currentProducts || []).find((p) => String(p.id) === String(productId));
+            const modSub = String((curP && curP.moderation_status) || 'approved').toLowerCase();
+            if (arSub === 'manager' && modSub === 'approved') {
+                if (
+                    !confirm(
+                        'Отправить изменения главному администратору на согласование? До одобрения на витрине останется текущая версия карточки.',
+                    )
+                ) {
+                    if (submitBtn) submitBtn.disabled = false;
+                    return;
+                }
+            }
+
             const cpuE = document.getElementById('edit-product-cpu').value.trim();
             const gpuE = document.getElementById('edit-product-gpu').value.trim();
             if (!cpuE || !gpuE) {
@@ -1956,7 +2116,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('Товар успешно обновлен!');
+                    showMessage(result.message || 'Товар успешно обновлен!');
                     aurumPendingEditImage = null;
                     window.closeEditModal();
                     loadProducts();
@@ -1976,6 +2136,14 @@
 
         // Удаление товара (глобальная функция)
         window.deleteProduct = async function(id) {
+            let arDel = '';
+            try {
+                arDel = sessionStorage.getItem('aurum_admin_role') || '';
+            } catch (e) {}
+            if (arDel !== 'super') {
+                showMessage('Удаление товаров доступно только главному администратору.', true);
+                return;
+            }
             if (!confirm('Вы уверены, что хотите УДАЛИТЬ этот товар из базы данных? Это действие нельзя отменить!')) return;
 
             try {

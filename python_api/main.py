@@ -9,7 +9,7 @@ import time
 import urllib.error
 import re
 import urllib.request
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from pathlib import Path
@@ -22,9 +22,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
-from psycopg import connect
+from psycopg import connect as psycopg_connect
 from psycopg.rows import dict_row
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.gzip import GZipMiddleware
+
+try:
+    from psycopg.conninfo import make_conninfo
+    from psycopg_pool import ConnectionPool
+except ImportError:  # pragma: no cover
+    make_conninfo = None  # type: ignore[misc, assignment]
+    ConnectionPool = None  # type: ignore[misc, assignment]
 
 load_dotenv(override=True)
 
@@ -41,6 +49,43 @@ DB_CONFIG = {
     "password": _env("DB_PASS", ""),
 }
 
+_db_pool: Any = None
+
+
+def get_db_pool() -> Any:
+    """Пул соединений к PostgreSQL: меньше накладных расходов на каждый HTTP-запрос."""
+    global _db_pool
+    if ConnectionPool is None or make_conninfo is None:
+        raise RuntimeError("Установите пакет psycopg-pool: pip install psycopg-pool")
+    if _db_pool is None:
+        conninfo = make_conninfo(**DB_CONFIG)
+        mx = max(1, int(_env("DB_POOL_MAX", "20")))
+        mn = max(0, min(int(_env("DB_POOL_MIN", "1")), mx))
+        _db_pool = ConnectionPool(
+            conninfo=conninfo,
+            kwargs={"row_factory": dict_row},
+            min_size=mn,
+            max_size=mx,
+            timeout=float(_env("DB_POOL_TIMEOUT", "90")),
+            open=True,
+        )
+    return _db_pool
+
+
+def close_db_pool() -> None:
+    global _db_pool
+    if _db_pool is not None:
+        _db_pool.close()
+        _db_pool = None
+
+
+def db_conn():
+    """Контекстное соединение: пул (если установлен psycopg-pool) иначе одно соединение на with-блок."""
+    if ConnectionPool is not None and make_conninfo is not None:
+        return get_db_pool().connection()
+    return psycopg_connect(**DB_CONFIG, row_factory=dict_row)
+
+
 origins = _env("ALLOWED_ORIGINS", "*")
 allow_origins = ["*"] if origins == "*" else [v.strip() for v in origins.split(",") if v.strip()]
 
@@ -51,6 +96,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=900)
 
 
 @app.exception_handler(HTTPException)
@@ -71,10 +117,6 @@ async def validation_exception_handler(_, exc: RequestValidationError):
         status_code=422,
         content={"success": False, "error": "Некорректные данные запроса", "details": exc.errors()},
     )
-
-
-def db_conn():
-    return connect(**DB_CONFIG, row_factory=dict_row)
 
 
 def normalize_legacy_products() -> None:
@@ -299,8 +341,22 @@ def ensure_products_moderation_columns() -> None:
         conn.commit()
 
 
+def ensure_products_pending_update_column() -> None:
+    """Черновик правок менеджера по опубликованным карточкам до одобрения super."""
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            ALTER TABLE products
+            ADD COLUMN IF NOT EXISTS pending_update jsonb NULL
+            """
+        )
+        conn.commit()
+
+
 def _product_catalog_sql_predicate(alias: str = "") -> str:
     """Условие видимости товара во витрине (миграции: moderation_status по умолчанию approved)."""
+    if alias and not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", alias):
+        raise ValueError("invalid catalog SQL alias")
     p = f"{alias}." if alias else ""
     return f"({p}is_active = true AND COALESCE({p}moderation_status, 'approved') = 'approved')"
 
@@ -314,6 +370,21 @@ def _notify_owners_pending_product(product_id: int, name: str, price_val: Any) -
         f"ID: {product_id}\n"
         f"{name}\n"
         f"Цена: {_money_str(price_val)} ₽\n"
+        "Админ-панель → Товары → блок «Модерация»."
+    )
+    for cid in owners:
+        _telegram_send_message(int(cid), text)
+
+
+def _notify_owners_pending_product_edit(product_id: int, name: str, price_val: Any) -> None:
+    owners = _owner_telegram_ids()
+    if not owners:
+        return
+    text = (
+        "✏️ Правки карточки на согласовании\n"
+        f"ID: {product_id}\n"
+        f"{name}\n"
+        f"Цена (в правках): {_money_str(price_val)} ₽\n"
         "Админ-панель → Товары → блок «Модерация»."
     )
     for cid in owners:
@@ -378,6 +449,33 @@ def _decode_optional_image_upload(data: dict[str, Any]) -> tuple[Optional[bytes]
 
 def _product_row_for_api(row: dict[str, Any]) -> dict[str, Any]:
     r = dict(row)
+    pu = r.pop("pending_update", None)
+    if pu is not None and not isinstance(pu, dict):
+        if isinstance(pu, str) and pu.strip():
+            try:
+                pu = json.loads(pu)
+            except json.JSONDecodeError:
+                pu = None
+    if isinstance(pu, dict) and pu:
+        r["has_pending_update"] = True
+        old_img = str(r.get("image") or "").strip()
+        new_img = str(pu.get("image") or "").strip()
+        img_changed = bool(str(pu.get("image_base64") or "").strip()) or (new_img != old_img and new_img != "")
+        desc_pv = pu.get("description")
+        if isinstance(desc_pv, str) and len(desc_pv) > 800:
+            desc_pv = desc_pv[:800] + "…"
+        r["pending_preview"] = {
+            "name": pu.get("name"),
+            "price": pu.get("price"),
+            "category_id": pu.get("category_id"),
+            "cpu": pu.get("cpu"),
+            "gpu": pu.get("gpu"),
+            "description": desc_pv,
+            "is_active": pu.get("is_active"),
+            "image_changed": img_changed,
+        }
+    else:
+        r["has_pending_update"] = False
     blob = r.get("image_data")
     r.pop("image_data", None)
     mime = r.pop("image_mime", None)
@@ -564,6 +662,12 @@ _PAYMENT_STATUS_RU = {
     "failed": "Ошибка оплаты",
 }
 
+_ORDER_STATUS_DB: frozenset[str] = frozenset(_ORDER_STATUS_RU.keys())
+
+_ORDER_STATUSES_USER_CANCELLABLE: frozenset[str] = frozenset({"new", "processing", "confirmed"})
+
+_INTERNAL_BALANCE_ORDER_MARKER = "[Оплата: внутренний счет]"
+
 
 def _money_str(value: Any) -> str:
     try:
@@ -648,6 +752,13 @@ def _notify_admins_new_order(
         _telegram_send_message(cid, text)
 
 
+# Финальные фразы в Telegram после оформления заказа (клиенту)
+_CUSTOMER_ORDER_MSG_STATUS_LINE = "Статусы заказа также будем присылать сюда."
+_CUSTOMER_ORDER_MSG_INTERNAL_REFUND = (
+    "Оплата с внутреннего счёта: при отмене заказа или по истечении срока хранения сумма будет возвращена на ваш внутренний счёт в приложении."
+)
+
+
 def _notify_customer_new_order(
     *,
     order_number: str,
@@ -657,6 +768,7 @@ def _notify_customer_new_order(
     payment_method: str,
     payment_status: str,
     is_internal_balance: bool,
+    order_items: Optional[Any] = None,
 ) -> None:
     if customer_telegram_id is None:
         return
@@ -669,6 +781,7 @@ def _notify_customer_new_order(
         f"Спасибо! Заказ {order_number} принят.",
         f"Сумма: {_money_str(total_amount)} ₽",
     ]
+    lines.extend(_format_order_items_lines_for_customer_message(order_items))
     if delivery_type == "pickup":
         ready_days = 3
         hold_days = 10
@@ -679,9 +792,7 @@ def _notify_customer_new_order(
         lines.append(f"Заберите заказ до {deadline} включительно. Если не успеете — заказ будет отменён.")
         if payment_status == "paid":
             if is_internal_balance:
-                lines.append(
-                    "Оплата с внутреннего счёта: при отмене по истечении срока хранения сумма будет возвращена на ваш внутренний счёт в приложении (данные синхронизируются с сервером при следующем открытии)."
-                )
+                lines.append(_CUSTOMER_ORDER_MSG_INTERNAL_REFUND)
             elif pm == "card":
                 lines.append(
                     "Оплата картой: возврат средств будет оформлен на карту по регламенту банка после отмены заказа."
@@ -690,16 +801,17 @@ def _notify_customer_new_order(
                 lines.append(
                     "При отмене по истечении срока хранения возврат оплаты согласуем с вами в переписке."
                 )
-        else:
-            lines.append("Статусы заказа и оплаты пришлём сюда же.")
+        lines.append(_CUSTOMER_ORDER_MSG_STATUS_LINE)
     else:
         lines.append(
             "Доставка: ориентировочно в течение 7 дней заказ будет готов к отправке."
         )
         lines.append(
-            "Мы пришлём уведомление о готовности и предложим выбрать удобную дату и время доставки."
+            "Наш менеджер свяжется с вами, когда ваш заказ будет готов и предложит выбрать удобную дату и время доставки!"
         )
-        lines.append("Статусы заказа и оплаты также будем присылать сюда.")
+        if payment_status == "paid" and is_internal_balance:
+            lines.append(_CUSTOMER_ORDER_MSG_INTERNAL_REFUND)
+        lines.append(_CUSTOMER_ORDER_MSG_STATUS_LINE)
     _telegram_send_message(chat_id, "\n".join(lines))
 
 
@@ -1326,6 +1438,10 @@ class ReviewPublishPayload(BaseModel):
     is_published: bool
 
 
+class OrderUserCancelPayload(BaseModel):
+    telegram_id: int
+
+
 def _enrich_reviews_order_items(reviews: list[dict[str, Any]]) -> None:
     if not reviews:
         return
@@ -1375,6 +1491,42 @@ def _enrich_reviews_order_items(reviews: list[dict[str, Any]]) -> None:
             r["order_items"] = []
             continue
         r["order_items"] = by_oid.get(io, [])
+
+
+def _batch_attach_order_items(cur: Any, orders: list[dict[str, Any]]) -> None:
+    """Одна выборка order_items для списка заказов вместо N+1 запросов."""
+    if not orders:
+        return
+    ids: list[int] = []
+    for o in orders:
+        oid = o.get("id")
+        if oid is None:
+            continue
+        try:
+            ids.append(int(oid))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        for o in orders:
+            o["items"] = []
+        return
+    unique_ids = list(dict.fromkeys(ids))
+    cur.execute(
+        "SELECT * FROM order_items WHERE order_id = ANY(%s) ORDER BY order_id, id",
+        (unique_ids,),
+    )
+    rows = cur.fetchall()
+    by_oid: dict[int, list[dict[str, Any]]] = {}
+    for it in rows:
+        oid = int(it["order_id"])
+        by_oid.setdefault(oid, []).append(dict(it))
+    for o in orders:
+        oid = o.get("id")
+        try:
+            io = int(oid) if oid is not None else None
+        except (TypeError, ValueError):
+            io = None
+        o["items"] = by_oid.get(io, []) if io is not None else []
 
 
 @app.get("/api/health")
@@ -1436,7 +1588,7 @@ def products_get(
                 cur.execute(
                     """
                     SELECT id, name, price, image, cpu, gpu, description, category_id, config_json, image_data, image_mime,
-                           is_active, moderation_status, created_by_role
+                           is_active, moderation_status, created_by_role, pending_update
                     FROM products
                     WHERE id = %s
                     """,
@@ -1474,7 +1626,7 @@ def products_get(
             cur.execute(
                 """
                 SELECT id, name, price, image, cpu, gpu, category_id, description, is_active, config_json, image_data, image_mime,
-                       moderation_status, created_by_role
+                       moderation_status, created_by_role, pending_update
                 FROM products
                 ORDER BY category_id, id
                 """
@@ -1514,11 +1666,186 @@ def _parse_config_json_payload(raw: Any) -> Optional[dict[str, Any]]:
     return None
 
 
+def _manager_build_snapshot_for_approved_edit(cur: Any, product_id: int, data: dict[str, Any]) -> dict[str, Any]:
+    cur.execute(
+        """
+        SELECT category_id, name, price, cpu, gpu, description, is_active, config_json, image, image_data, image_mime
+        FROM products WHERE id = %s
+        """,
+        (product_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        json_error("Товар не найден", 404)
+    cfg = _parse_config_json_payload(row.get("config_json"))
+    try:
+        base_price = float(row.get("price") or 0)
+    except (TypeError, ValueError):
+        base_price = 0.0
+    snap: dict[str, Any] = {
+        "category_id": row.get("category_id"),
+        "name": row.get("name"),
+        "price": base_price,
+        "cpu": row.get("cpu"),
+        "gpu": row.get("gpu"),
+        "description": row.get("description"),
+        "is_active": bool(row.get("is_active")),
+        "config_json": cfg,
+    }
+    if row.get("image_data"):
+        snap["image"] = "__inline__"
+    else:
+        snap["image"] = str(row.get("image") or "").strip()
+    if "category_id" in data:
+        snap["category_id"] = data["category_id"]
+    if "name" in data:
+        snap["name"] = _validate_product_name(str(data.get("name") or ""))
+    if "price" in data:
+        try:
+            pv = float(data["price"])
+        except (TypeError, ValueError):
+            json_error("Некорректная цена", 400)
+        snap["price"] = float(_validate_product_price_value(pv))
+    if "cpu" in data:
+        snap["cpu"] = data["cpu"]
+    if "gpu" in data:
+        snap["gpu"] = data["gpu"]
+    if "description" in data:
+        snap["description"] = data["description"]
+    if "is_active" in data:
+        snap["is_active"] = _coerce_bool(data["is_active"])
+    if "config_json" in data:
+        raw_cfg = data.get("config_json")
+        if raw_cfg is None:
+            snap["config_json"] = None
+        else:
+            cfg2 = _parse_config_json_payload(raw_cfg)
+            if cfg2 is None:
+                json_error("Некорректный config_json", 400)
+            snap["config_json"] = cfg2
+    if "image_base64" in data:
+        _decode_optional_image_upload(data)
+        raw_b64 = str(data.get("image_base64") or "").strip()
+        if raw_b64.startswith("data:") and "," in raw_b64:
+            raw_b64 = raw_b64.split(",", 1)[1]
+        snap["image_base64"] = raw_b64
+        snap["image_mime"] = str(data.get("image_mime") or "image/jpeg").strip().lower()[:64]
+        snap["image"] = "__inline__"
+    elif "image" in data:
+        ip = _validate_image_path_optional(data.get("image"))
+        if ip is None:
+            json_error("Укажите путь к изображению (photo/...) или загрузите файл", 400)
+        snap["image"] = ip
+        snap.pop("image_base64", None)
+        snap.pop("image_mime", None)
+    snap.pop("image_data", None)
+    return snap
+
+
+def _apply_pending_snapshot_to_product(cur: Any, product_id: int, snap: dict[str, Any]) -> None:
+    name = _validate_product_name(str(snap.get("name") or ""))
+    try:
+        pv = float(snap.get("price"))
+    except (TypeError, ValueError):
+        json_error("Некорректная цена в правках", 400)
+    pv = _validate_product_price_value(pv)
+    price_int = int(round(pv))
+    category_id = snap.get("category_id")
+    if not category_id:
+        json_error("В правках не указана категория", 400)
+    cpu, gpu, desc = snap.get("cpu"), snap.get("gpu"), snap.get("description")
+    is_act = _coerce_bool(snap.get("is_active", True))
+    cfg = snap.get("config_json")
+    cfg_sql_val: Optional[str]
+    if cfg is None:
+        cfg_sql_val = None
+    elif not isinstance(cfg, dict):
+        json_error("Некорректный config_json в правках", 400)
+    else:
+        cfg_sql_val = json.dumps(cfg, ensure_ascii=False)
+
+    img_blob_final: Optional[bytes] = None
+    img_mime_final: Optional[str] = None
+    image_col: str
+    if snap.get("image_base64"):
+        img_blob_final, img_mime_final = _decode_optional_image_upload(
+            {"image_base64": snap.get("image_base64"), "image_mime": snap.get("image_mime")}
+        )
+        image_col = "__inline__"
+    else:
+        im = snap.get("image")
+        im_s = str(im or "").strip()
+        if im_s == "__inline__":
+            cur.execute("SELECT image_data, image_mime FROM products WHERE id = %s", (product_id,))
+            er = cur.fetchone()
+            if er and er.get("image_data"):
+                raw_blob = er["image_data"]
+                img_blob_final = bytes(raw_blob) if not isinstance(raw_blob, (bytes, bytearray)) else raw_blob
+                img_mime_final = str(er.get("image_mime") or "image/jpeg").strip() or "image/jpeg"
+                image_col = "__inline__"
+            else:
+                json_error(
+                    "В правках указано изображение из базы, но файл отсутствует — попросите менеджера загрузить фото заново",
+                    400,
+                )
+        else:
+            ip = _validate_image_path_optional(im)
+            if ip is None:
+                json_error("Укажите изображение в правках (путь или файл)", 400)
+            image_col = ip
+
+    cur.execute("SELECT id FROM categories WHERE id = %s", (category_id,))
+    if not cur.fetchone():
+        json_error("Категория не найдена", 400)
+
+    if img_blob_final is not None:
+        cur.execute(
+            """
+            UPDATE products SET
+                category_id = %s, name = %s, price = %s, image = %s, cpu = %s, gpu = %s, description = %s,
+                is_active = %s, config_json = CAST(%s AS jsonb), image_data = %s, image_mime = %s,
+                moderation_status = %s, pending_update = NULL
+            WHERE id = %s
+            """,
+            (
+                category_id,
+                name,
+                price_int,
+                image_col,
+                cpu,
+                gpu,
+                desc,
+                is_act,
+                cfg_sql_val,
+                img_blob_final,
+                img_mime_final,
+                "approved",
+                product_id,
+            ),
+        )
+    else:
+        cur.execute(
+            """
+            UPDATE products SET
+                category_id = %s, name = %s, price = %s, image = %s, cpu = %s, gpu = %s, description = %s,
+                is_active = %s, config_json = CAST(%s AS jsonb), image_data = NULL, image_mime = NULL,
+                moderation_status = %s, pending_update = NULL
+            WHERE id = %s
+            """,
+            (category_id, name, price_int, image_col, cpu, gpu, desc, is_act, cfg_sql_val, "approved", product_id),
+        )
+    cur.execute(
+        """
+        UPDATE products
+        SET config_json = jsonb_set(config_json, '{basePrice}', to_jsonb(%s::int), true)
+        WHERE id = %s AND config_json IS NOT NULL
+        """,
+        (price_int, product_id),
+    )
+
+
 def _products_admin_update(request: Request, product_id: int, data: dict[str, Any]) -> dict[str, Any]:
     role = get_admin_role_from_request(request) or "manager"
-    fields: list[str] = []
-    values: list[Any] = []
-    price_int_for_config_sync: int | None = None
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT id, moderation_status FROM products WHERE id = %s",
@@ -1528,8 +1855,33 @@ def _products_admin_update(request: Request, product_id: int, data: dict[str, An
         if not existing:
             json_error("Товар не найден", 404)
         mod_st = str(existing.get("moderation_status") or "approved").lower()
+
+        if role == "manager" and mod_st == "approved":
+            if not data:
+                json_error("Нет полей для обновления", 400)
+            snap = _manager_build_snapshot_for_approved_edit(cur, product_id, data)
+            cur.execute(
+                "UPDATE products SET pending_update = CAST(%s AS jsonb) WHERE id = %s",
+                (json.dumps(snap, ensure_ascii=False, default=str), product_id),
+            )
+            conn.commit()
+            cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
+            product = cur.fetchone()
+            _notify_owners_pending_product_edit(product_id, str(snap.get("name") or ""), snap.get("price"))
+            return jsonable_encoder(
+                {
+                    "success": True,
+                    "data": _product_row_for_api(product),
+                    "message": "Изменения отправлены главному администратору на согласование",
+                }
+            )
+
     if role == "manager" and mod_st == "pending" and "is_active" in data and _coerce_bool(data.get("is_active")):
         json_error("Публикация доступна только после одобрения главным администратором", 403)
+
+    fields: list[str] = []
+    values: list[Any] = []
+    price_int_for_config_sync: int | None = None
     if "category_id" in data:
         fields.append("category_id = %s")
         values.append(data["category_id"])
@@ -1587,6 +1939,12 @@ def _products_admin_update(request: Request, product_id: int, data: dict[str, An
         if not any("moderation_status" in f for f in fields):
             fields.append("moderation_status = %s")
             values.append("approved")
+    substantive = any(
+        k in data
+        for k in ("category_id", "name", "price", "cpu", "gpu", "description", "config_json", "image", "image_base64")
+    )
+    if role == "super" and substantive:
+        fields.append("pending_update = NULL")
     if not fields:
         json_error("Нет полей для обновления", 400)
     values.append(product_id)
@@ -1690,31 +2048,71 @@ def _products_admin_moderate(product_id: int, data: dict[str, Any]) -> dict[str,
         json_error("В теле запроса укажите approve: true (опубликовать) или false (отклонить)", 400)
     approve = _coerce_bool(data.get("approve"))
     with db_conn() as conn, conn.cursor() as cur:
-        cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
-        if not cur.fetchone():
+        cur.execute(
+            "SELECT * FROM products WHERE id = %s",
+            (product_id,),
+        )
+        row = cur.fetchone()
+        if not row:
             json_error("Товар не найден", 404)
+        pu_raw = row.get("pending_update")
+        pu: Optional[dict[str, Any]] = None
+        if pu_raw is not None:
+            if isinstance(pu_raw, dict):
+                pu = pu_raw
+            elif isinstance(pu_raw, str) and pu_raw.strip():
+                try:
+                    parsed = json.loads(pu_raw)
+                except json.JSONDecodeError:
+                    parsed = None
+                pu = parsed if isinstance(parsed, dict) else None
+        mod_st = str(row.get("moderation_status") or "approved").lower()
+        has_edit_pending = bool(pu)
+
         if approve:
-            cur.execute(
-                """
-                UPDATE products
-                SET moderation_status = %s, is_active = true
-                WHERE id = %s
-                """,
-                ("approved", product_id),
-            )
+            if has_edit_pending:
+                _apply_pending_snapshot_to_product(cur, product_id, pu or {})
+            elif mod_st == "pending":
+                cur.execute(
+                    """
+                    UPDATE products
+                    SET moderation_status = %s, is_active = true
+                    WHERE id = %s
+                    """,
+                    ("approved", product_id),
+                )
+            else:
+                json_error("Нет карточки или правок, ожидающих одобрения", 400)
         else:
-            cur.execute(
-                """
-                UPDATE products
-                SET moderation_status = %s, is_active = false
-                WHERE id = %s
-                """,
-                ("rejected", product_id),
-            )
+            if has_edit_pending:
+                cur.execute(
+                    "UPDATE products SET pending_update = NULL WHERE id = %s",
+                    (product_id,),
+                )
+            elif mod_st == "pending":
+                cur.execute(
+                    """
+                    UPDATE products
+                    SET moderation_status = %s, is_active = false
+                    WHERE id = %s
+                    """,
+                    ("rejected", product_id),
+                )
+            else:
+                json_error("Нет данных для отклонения", 400)
         cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
         product = cur.fetchone()
         conn.commit()
-    out_msg = "Карточка опубликована" if approve else "Карточка отклонена"
+    if approve:
+        if has_edit_pending:
+            out_msg = "Правки применены, карточка обновлена"
+        else:
+            out_msg = "Карточка опубликована"
+    else:
+        if has_edit_pending:
+            out_msg = "Правки отклонены, на витрине остаётся прежняя версия"
+        else:
+            out_msg = "Карточка отклонена"
     return {"success": True, "data": _product_row_for_api(product), "message": out_msg}
 
 
@@ -1739,6 +2137,7 @@ def products_post(
 @app.delete("/api/products")
 def products_delete(request: Request, id: int = Query(..., description="ID товара")):
     require_admin(request)
+    require_super_admin(request)
     with db_conn() as conn, conn.cursor() as cur:
         cur.execute("DELETE FROM products WHERE id = %s RETURNING id", (id,))
         if not cur.fetchone():
@@ -2125,6 +2524,228 @@ def _normalize_profile_finance_core(value: Any) -> dict[str, Any]:
     return {k: full[k] for k in ("balance", "bonuses", "personalDiscount", "activeCertificateCode")}
 
 
+def _format_order_items_lines_for_customer_message(items: Any) -> list[str]:
+    """Краткий список позиций для Telegram (payload items до записи в БД)."""
+    if not isinstance(items, list) or not items:
+        return []
+    out: list[str] = ["Состав заказа:"]
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        name = str(raw.get("item_name") or "Позиция").strip() or "Позиция"
+        try:
+            qty = int(raw.get("quantity", 1))
+        except (TypeError, ValueError):
+            qty = 1
+        qty = max(1, qty)
+        try:
+            tp = float(raw.get("total_price", 0) or 0)
+        except (TypeError, ValueError):
+            tp = 0.0
+        out.append(f"• {qty}× {name} — {_money_str(tp)} ₽")
+    return out if len(out) > 1 else []
+
+
+def _apply_internal_balance_refund_on_order_cancelled(cur: Any, prev: dict[str, Any], new_order: dict[str, Any]) -> None:
+    """
+    Перевод заказа в cancelled (оплата с внутреннего счёта, метка в comment):
+    — возврат суммы на balance + запись в deposit_history (идемпотентно);
+    — возврат списанных бонусов (earn в bonus_ledger);
+    — откат начисления бонусов за заказ (spend в bonus_ledger);
+    — восстановление персональной скидки по discount_percent заказа;
+    — если заказ гасил сертификат — удаление certificate_redemptions и возврат activeCertificateCode в profile_finance.
+    """
+    if str(new_order.get("order_status") or "") != "cancelled":
+        return
+    if str(prev.get("order_status") or "") == "cancelled":
+        return
+    if str(prev.get("payment_status") or "") != "paid":
+        return
+    if _INTERNAL_BALANCE_ORDER_MARKER not in str(prev.get("comment") or ""):
+        return
+    raw_tid = prev.get("customer_telegram_id")
+    if raw_tid is None:
+        return
+    try:
+        tid_int = int(raw_tid)
+    except (TypeError, ValueError):
+        return
+    try:
+        oid = int(prev.get("id") or 0)
+    except (TypeError, ValueError):
+        return
+    if oid <= 0:
+        return
+    try:
+        refund_amt = float(prev.get("total_amount") or 0)
+    except (TypeError, ValueError):
+        refund_amt = 0.0
+
+    try:
+        bonus_used = int(prev.get("bonus_used") or 0)
+    except (TypeError, ValueError):
+        bonus_used = 0
+    bonus_used = max(0, bonus_used)
+
+    try:
+        disc_pct_order = float(prev.get("discount_percent") or 0)
+    except (TypeError, ValueError):
+        disc_pct_order = 0.0
+
+    order_number = str(prev.get("order_number") or f"#{oid}")
+    uid_for_ledger = prev.get("user_id")
+    try:
+        uid_int = int(uid_for_ledger) if uid_for_ledger is not None else None
+    except (TypeError, ValueError):
+        uid_int = None
+
+    entry_uid_balance = f"refund-balance-order-{oid}"
+    note_bonus_refund = f"Возврат списанных бонусов (отмена заказа #{oid})"
+    note_bonus_revoke = f"Откат начисления бонусов (отмена заказа #{oid})"
+
+    cur.execute(
+        "SELECT telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, favorite_configs FROM user_state WHERE telegram_id = %s",
+        (tid_int,),
+    )
+    st_row = cur.fetchone()
+    existing_pf_raw = st_row.get("profile_finance") if st_row else None
+    existing_pf = existing_pf_raw if isinstance(existing_pf_raw, dict) else {}
+    full = _normalize_profile_finance(existing_pf)
+    deposits = list(full.get("deposit_history") or [])
+    balance_refund_done = any(str(e.get("id") or "") == entry_uid_balance for e in deposits)
+
+    prev_bal = float(full["balance"])
+    new_bal = prev_bal
+    if not balance_refund_done and refund_amt > 0:
+        new_bal = prev_bal + refund_amt
+        if new_bal > MAX_USER_BALANCE_RUB + 1e-6:
+            new_bal = MAX_USER_BALANCE_RUB
+        dep_rev = int(full.get("deposit_history_revision") or 0) + 1
+        ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        entry = {
+            "id": entry_uid_balance,
+            "amount": round(refund_amt, 2),
+            "balance_after": round(max(0.0, new_bal), 2),
+            "created_at": ts,
+        }
+        deposits = [entry] + deposits
+        deposits = deposits[:MAX_DEPOSIT_HISTORY_ENTRIES]
+        full["deposit_history"] = deposits
+        full["deposit_history_revision"] = dep_rev
+    else:
+        new_bal = prev_bal
+
+    cur.execute(
+        "SELECT code FROM certificate_redemptions WHERE order_id = %s AND telegram_id = %s LIMIT 1",
+        (oid, tid_int),
+    )
+    cert_row = cur.fetchone()
+    restored_cert: Optional[str] = None
+    if cert_row:
+        raw_code = str(cert_row.get("code") or "").strip().upper()
+        cur.execute(
+            "DELETE FROM certificate_redemptions WHERE order_id = %s AND telegram_id = %s",
+            (oid, tid_int),
+        )
+        if raw_code:
+            restored_cert = raw_code
+
+    cur.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)::bigint AS s
+        FROM bonus_ledger
+        WHERE order_id = %s AND telegram_id = %s AND entry_type = 'earn'
+          AND COALESCE(note, '') LIKE %s
+        """,
+        (oid, tid_int, "%ачисление бонусов за заказ%"),
+    )
+    er = cur.fetchone()
+    try:
+        earn_sum = int(er["s"]) if er and er.get("s") is not None else 0
+    except (TypeError, ValueError):
+        earn_sum = 0
+    earn_sum = max(0, earn_sum)
+
+    cur.execute(
+        "SELECT 1 FROM bonus_ledger WHERE telegram_id = %s AND order_id = %s AND entry_type = 'earn' AND note = %s LIMIT 1",
+        (tid_int, oid, note_bonus_refund),
+    )
+    if not cur.fetchone() and bonus_used > 0:
+        cur.execute(
+            """
+            INSERT INTO bonus_ledger (telegram_id, user_id, order_id, order_number, entry_type, amount, note)
+            VALUES (%s, %s, %s, %s, 'earn', %s, %s)
+            """,
+            (tid_int, uid_int, oid, order_number, bonus_used, note_bonus_refund),
+        )
+
+    cur.execute(
+        "SELECT 1 FROM bonus_ledger WHERE telegram_id = %s AND order_id = %s AND entry_type = 'spend' AND note = %s LIMIT 1",
+        (tid_int, oid, note_bonus_revoke),
+    )
+    if not cur.fetchone() and earn_sum > 0:
+        cur.execute(
+            """
+            INSERT INTO bonus_ledger (telegram_id, user_id, order_id, order_number, entry_type, amount, note)
+            VALUES (%s, %s, %s, %s, 'spend', %s, %s)
+            """,
+            (tid_int, uid_int, oid, order_number, earn_sum, note_bonus_revoke),
+        )
+
+    base_b = int(math.floor(float(full.get("bonuses") or 0)))
+    if bonus_used > 0:
+        base_b += bonus_used
+    if earn_sum > 0:
+        base_b = max(0, base_b - earn_sum)
+    new_bonuses = float(max(0, base_b))
+
+    new_personal = float(full.get("personalDiscount") or 0)
+    if restored_cert:
+        new_active: Optional[str] = restored_cert
+    else:
+        new_active = full.get("activeCertificateCode")
+        if disc_pct_order > 1e-6:
+            new_personal = max(new_personal, min(100.0, disc_pct_order))
+
+    profile_finance = {
+        "balance": round(max(0.0, new_bal), 2),
+        "bonuses": new_bonuses,
+        "personalDiscount": round(max(0.0, min(100.0, new_personal)), 4),
+        "activeCertificateCode": new_active,
+        "deposit_history": list(full.get("deposit_history") or []),
+        "deposit_history_revision": int(full.get("deposit_history_revision") or 0),
+    }
+    if st_row:
+        cart_items = _normalize_cart_items(st_row.get("cart_items"))
+        favorite_ids = _normalize_favorite_ids(st_row.get("favorite_ids"))
+        cc_raw = st_row.get("cart_configs")
+        fc_raw = st_row.get("favorite_configs")
+    else:
+        cart_items = []
+        favorite_ids = []
+        cc_raw = {}
+        fc_raw = {}
+    cart_configs = _normalize_cart_configs(cc_raw) if isinstance(cc_raw, dict) else {}
+    favorite_configs = _normalize_cart_configs(fc_raw) if isinstance(fc_raw, dict) else {}
+    cur.execute(
+        """
+        INSERT INTO user_state (telegram_id, cart_items, favorite_ids, profile_finance, cart_configs, favorite_configs, updated_at)
+        VALUES (%s, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, NOW())
+        ON CONFLICT (telegram_id) DO UPDATE SET
+            profile_finance = EXCLUDED.profile_finance,
+            updated_at = NOW()
+        """,
+        (
+            tid_int,
+            json.dumps(cart_items, ensure_ascii=False),
+            json.dumps(favorite_ids, ensure_ascii=False),
+            json.dumps(profile_finance, ensure_ascii=False),
+            json.dumps(cart_configs, ensure_ascii=False),
+            json.dumps(favorite_configs, ensure_ascii=False),
+        ),
+    )
+
+
 @app.get("/api/user-state")
 def user_state_get(telegram_id: int = Query(...)):
     with db_conn() as conn, conn.cursor() as cur:
@@ -2364,8 +2985,11 @@ def orders_get(
             clauses: list[str] = []
             params: list[Any] = []
             if status:
+                st_key = str(status).strip().lower()
+                if st_key not in _ORDER_STATUS_DB:
+                    json_error("Некорректный параметр status", 400)
                 clauses.append("o.order_status = %s")
-                params.append(status)
+                params.append(st_key)
             if date_from:
                 try:
                     df = date.fromisoformat(date_from.strip())
@@ -2388,9 +3012,7 @@ def orders_get(
             """ + where_sql + " ORDER BY o.created_at DESC"
             cur.execute(sql, params)
             orders = cur.fetchall()
-            for order in orders:
-                cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order["id"],))
-                order["items"] = cur.fetchall()
+            _batch_attach_order_items(cur, orders)
             return {"success": True, "data": orders, "orders": orders}
 
         if id is not None:
@@ -2423,9 +3045,7 @@ def orders_get(
 
             seen = {o["id"] for o in orders_by_user}
             orders = orders_by_user + [o for o in orders_by_phone if o["id"] not in seen]
-            for order in orders:
-                cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order["id"],))
-                order["items"] = cur.fetchall()
+            _batch_attach_order_items(cur, orders)
             return {"success": True, "data": orders, "orders": orders}
 
         if phone is not None:
@@ -2460,17 +3080,13 @@ def orders_get(
                 seen.add(oid)
                 merged.append(o)
             merged.sort(key=lambda x: x["created_at"], reverse=True)
-            for order in merged:
-                cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order["id"],))
-                order["items"] = cur.fetchall()
+            _batch_attach_order_items(cur, merged)
             return {"success": True, "data": merged, "orders": merged}
 
         if user_id is not None:
             cur.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
             orders = cur.fetchall()
-            for order in orders:
-                cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order["id"],))
-                order["items"] = cur.fetchall()
+            _batch_attach_order_items(cur, orders)
             return {"success": True, "data": orders, "orders": orders}
 
     json_error("Необходим параметр user_id, telegram_id, phone, id или admin=1", 400)
@@ -2478,7 +3094,7 @@ def orders_get(
 
 
 def _orders_admin_update(order_id: int, data: dict[str, Any]) -> dict[str, Any]:
-    allowed_order = {"new", "processing", "confirmed", "shipped", "delivered", "cancelled"}
+    allowed_order = _ORDER_STATUS_DB
     allowed_pay = {"pending", "paid", "failed"}
     fields: list[str] = []
     values: list[Any] = []
@@ -2506,10 +3122,43 @@ def _orders_admin_update(order_id: int, data: dict[str, Any]) -> dict[str, Any]:
         order = cur.fetchone()
         cur.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,))
         order["items"] = cur.fetchall()
+        _apply_internal_balance_refund_on_order_cancelled(cur, prev_snapshot, dict(order))
         conn.commit()
     if prev_snapshot and order:
         _notify_customer_order_changes(prev_snapshot, dict(order))
     return {"success": True, "data": order, "order": order, "message": "Заказ успешно обновлен"}
+
+
+def _order_owned_by_telegram(cur: Any, order: dict[str, Any], telegram_id: int) -> bool:
+    """Заказ доступен пользователю с данным telegram_id (как в выдаче GET /api/orders?telegram_id=)."""
+    try:
+        tid = int(telegram_id)
+    except (TypeError, ValueError):
+        return False
+    otid = order.get("customer_telegram_id")
+    if otid is not None:
+        try:
+            if int(otid) == tid:
+                return True
+        except (TypeError, ValueError):
+            pass
+    cur.execute("SELECT id, phone FROM users WHERE telegram_id = %s", (tid,))
+    urow = cur.fetchone()
+    if not urow:
+        return False
+    try:
+        uid = int(urow["id"])
+    except (TypeError, ValueError):
+        return False
+    ouid = order.get("user_id")
+    if ouid is not None:
+        try:
+            return int(ouid) == uid
+        except (TypeError, ValueError):
+            return False
+    digits_u = normalize_phone_digits(urow.get("phone"))
+    digits_o = normalize_phone_digits(order.get("phone"))
+    return bool(digits_u and digits_o and digits_u == digits_o)
 
 
 def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
@@ -2569,7 +3218,7 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
     payment_method_ui = str(payload.get("payment_method_ui") or "").strip().lower()
     pm = str(payment_method or "cash").strip().lower()
     comment_s = str(comment or "")
-    is_internal_balance = payment_method_ui == "balance" or "[Оплата: внутренний счет]" in comment_s
+    is_internal_balance = payment_method_ui == "balance" or _INTERNAL_BALANCE_ORDER_MARKER in comment_s
 
     comment = _validate_order_comment(comment)
     addr_out: Optional[str] = None
@@ -2724,6 +3373,7 @@ def _orders_create(payload: dict[str, Any]) -> dict[str, Any]:
         payment_method=pm,
         payment_status=payment_status_init,
         is_internal_balance=is_internal_balance,
+        order_items=items,
     )
 
     response = {"id": int(order_id), "order_number": order_number}
@@ -2743,11 +3393,39 @@ def orders_post(
     return _orders_create(payload)
 
 
+@app.post("/api/orders/{order_id}/user-cancel")
+def orders_user_cancel(order_id: int, payload: OrderUserCancelPayload):
+    """Отмена заказа из мини-приложения: проверка владельца по telegram_id, статус → cancelled (как в админке)."""
+    try:
+        tid = int(payload.telegram_id)
+    except (TypeError, ValueError):
+        json_error("Некорректный telegram_id", 400)
+    with db_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT * FROM orders WHERE id = %s", (order_id,))
+        prev = cur.fetchone()
+        if not prev:
+            json_error("Заказ не найден", 404)
+        prev_d = dict(prev)
+        if not _order_owned_by_telegram(cur, prev_d, tid):
+            json_error("Нет доступа к этому заказу", 403)
+        st = str(prev_d.get("order_status") or "").strip().lower()
+        if st == "cancelled":
+            json_error("Заказ уже отменён", 409)
+        if st not in _ORDER_STATUSES_USER_CANCELLABLE:
+            json_error(
+                "Этот заказ нельзя отменить в приложении: он уже передан в доставку или завершён. Напишите нам в Telegram.",
+                400,
+            )
+    return _orders_admin_update(order_id, {"order_status": "cancelled"})
+
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 @app.on_event("startup")
 def app_startup() -> None:
+    if ConnectionPool is not None and make_conninfo is not None:
+        get_db_pool()
     ensure_user_state_table()
     ensure_users_is_staff_column()
     ensure_reviews_order_id_unique_index()
@@ -2756,8 +3434,15 @@ def app_startup() -> None:
     ensure_products_config_json_column()
     ensure_products_image_blob_columns()
     ensure_products_moderation_columns()
+    ensure_products_pending_update_column()
     ensure_promo_codes_creator_column()
     normalize_legacy_products()
+
+
+@app.on_event("shutdown")
+def app_shutdown() -> None:
+    if ConnectionPool is not None and _db_pool is not None:
+        close_db_pool()
 
 
 @app.get("/")

@@ -205,6 +205,10 @@
             btn.addEventListener('click', async () => {
                 const id = parseInt(btn.getAttribute('data-id'), 10);
                 const next = btn.getAttribute('data-next') === '1';
+                const msg = next
+                    ? 'Вы уверены, что хотите опубликовать этот отзыв?'
+                    : 'Вы уверены, что хотите снять отзыв с публикации?';
+                if (!confirm(msg)) return;
                 btn.disabled = true;
                 try {
                     const r = await adminFetch(`${API_BASE_URL}/reviews/${id}`, {

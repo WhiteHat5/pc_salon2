@@ -207,6 +207,17 @@ const OrdersAPI = {
             console.warn('OrdersAPI.getByPhone:', error);
             return [];
         }
+    },
+
+    async userCancel(orderId, telegramId) {
+        if (orderId == null || telegramId == null) {
+            throw new Error('Не указан заказ или Telegram ID');
+        }
+        const result = await apiRequest(`orders/${encodeURIComponent(String(orderId))}/user-cancel`, {
+            method: 'POST',
+            body: { telegram_id: Number(telegramId) },
+        });
+        return result.order || result.data || result;
     }
 };
 
