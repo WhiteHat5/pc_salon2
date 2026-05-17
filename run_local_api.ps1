@@ -1,6 +1,7 @@
 # Запуск без XAMPP: один процесс отдаёт API + статику (index.html, /js, /photo, /admin).
 # Откройте в браузере: http://127.0.0.1:8000/
 # Админка: http://127.0.0.1:8000/admin/products.html
+# Для запуска из корня python_api в терминале: .\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 #
 # Используется Python из виртуального окружения (.venv или venv), чтобы совпадал с pip install.
 $apiRoot = Join-Path $PSScriptRoot "python_api"

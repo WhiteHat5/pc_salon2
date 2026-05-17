@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#151b28" />
-    <title>Промокоды — AURUM</title>
+    <title>Сертификаты — AURUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -82,7 +82,7 @@
         <a href="#" class="admin-fallback-shop admin-back-fab hidden fixed left-3 top-14 z-[60]" title="В магазин"><i class="fas fa-arrow-left"></i></a>
         <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center sm:pl-12">
             <div>
-                <h1 class="text-2xl font-bold mb-1"><i class="fas fa-ticket-alt mr-2 text-[#8ec8ff]"></i>Промокоды</h1>
+                <h1 class="text-2xl font-bold mb-1"><i class="fas fa-ticket-alt mr-2 text-[#8ec8ff]"></i>Сертификаты</h1>
                 <p class="text-sm text-[#b8c4d4]">Коды сертификатов и скидка % (активация в мини-приложении)</p>
             </div>
             <div class="flex flex-wrap gap-3">
@@ -94,7 +94,7 @@
         </div>
 
         <div class="admin-panel rounded-xl p-4 mb-6">
-            <h2 class="text-lg font-semibold text-[#8ec8ff] mb-3">Новый промокод</h2>
+            <h2 class="text-lg font-semibold text-[#8ec8ff] mb-3">Новый сертификат</h2>
             <form id="promo-create-form" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
                 <div class="flex-1 min-w-[8rem]">
                     <label class="block text-xs mb-1">Код</label>
@@ -114,7 +114,7 @@
                 </div>
                 <button type="submit" class="admin-btn-ice"><i class="fas fa-plus"></i>Создать</button>
             </form>
-            <p id="promo-manager-note" class="hidden text-xs text-[#8b97ab] mt-2">Менеджер: скидка не выше 15%, свой промокод нельзя применить к себе. Telegram ID подставляется из мини-приложения, если открыли страницу из Telegram.</p>
+            <p id="promo-manager-note" class="hidden text-xs text-[#8b97ab] mt-2">Менеджер: скидка не выше 15%, свой сертификат нельзя применить к себе. Telegram ID подставляется из мини-приложения, если открыли страницу из Telegram.</p>
         </div>
 
         <div class="admin-panel rounded-xl p-4 mb-4 flex flex-wrap gap-3 items-center">
@@ -219,7 +219,7 @@
     function renderList() {
         const box = document.getElementById('promo-list');
         if (!allPromos.length) {
-            box.innerHTML = '<p class="text-[#b8c4d4] text-center py-8">Нет промокодов (примените миграцию БД и перезапустите API)</p>';
+            box.innerHTML = '<p class="text-[#b8c4d4] text-center py-8">Нет сертификатов (примените миграцию БД и перезапустите API)</p>';
             return;
         }
         box.innerHTML = allPromos.map(p => {
@@ -281,7 +281,7 @@
                 const row = box.querySelector(`.admin-panel[data-id="${id}"]`);
                 const codeEl = row && row.querySelector('.font-mono');
                 const codeHint = codeEl ? codeEl.textContent.trim() : '';
-                if (!confirm(codeHint ? `Удалить промокод «${codeHint}»?` : 'Удалить этот промокод?')) return;
+                if (!confirm(codeHint ? `Удалить сертификат «${codeHint}»?` : 'Удалить этот сертификат?')) return;
                 btn.disabled = true;
                 try {
                     const r = await adminFetch(`${API_BASE_URL}/admin/promo-codes/${id}`, {
@@ -364,7 +364,7 @@
             const payload = { code: code.toUpperCase(), discount_percent: pct, is_active };
             if (adminPromoRole === 'manager') {
                 const ct = parseInt(String(document.getElementById('promo-creator-tg') && document.getElementById('promo-creator-tg').value || '').trim(), 10);
-                if (!Number.isFinite(ct)) { alert('Укажите ваш Telegram ID (нужен для защиты от самоприменения промокода)'); return; }
+                if (!Number.isFinite(ct)) { alert('Укажите ваш Telegram ID (нужен для защиты от самоприменения сертификата)'); return; }
                 payload.creator_telegram_id = ct;
             }
             try {
